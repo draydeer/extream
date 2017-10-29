@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "emitDecoratorMetadata": false,
+        "module": "commonjs",
+        "outDir": "dist",
+        "target": "ES5",
+        "typeRoots": [
+            "node_modules/@types"
+        ],
+        "rootDir": "."
+    },
+    "exclude": [
+        "coverage",
+        "dist",
+        "node_modules",
+        "old",
+        "typings"
+    ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "exstream",
+  "description": "",
+  "version": "1.0.0",
+  "filename": "index.ts",
+  "main": "./dist/src/index.js",
+  "homepage": "https://github.com/draydeer/exstream",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/draydeer/exstream.git"
+  },
+  "engines": {
+    "node": ">= 0.9"
+  },
+  "devDependencies": {
+    "istanbul": "^0.4.4",
+    "jasmine-node": "^1.14.5",
+    "@types/jasmine": "^2.5.53"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "rm -rf dist/ && tsc -d -p . --outDir dist",
+    "coveralls": "istanbul cover --root dist/src jasmine-node dist/specs",
+    "test": "jasmine-node dist/specs && NODE_ENV=dev jasmine-node dist/specs"
+  },
+  "dependencies": {
+    "@types/es6-shim": "^0.31.34",
+    "@types/node": "^8.0.8"
+  }
+}

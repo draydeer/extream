@@ -1,0 +1,10 @@
+.idea
+*.js
+*.log
+*.map
+**/ignore*
+**/junk*
+coverage
+!dist/**/*.js
+package-lock.json
+node_modules
