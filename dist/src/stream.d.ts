@@ -1,5 +1,6 @@
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
+import { StreamBuffer } from "./stream_buffer";
 export declare class State {
 }
 export declare const COMPLETED: State;
@@ -8,21 +9,25 @@ export declare const REJECTED: State;
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
+    protected _emitBuffer: StreamBuffer<T>;
     protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | State)[];
     protected _isPaused: boolean;
     protected _lastValue: T;
+    protected _subscribeBuffer: StreamBuffer<T>;
     protected _subscribers: {
         [key: string]: SubscriberInterface<T>;
     };
     protected _transmittedCount: number;
     static readonly COMPLETED: State;
     static readonly REJECTED: State;
-    constructor(assignee?: (stream: StreamInterface<T>) => any);
+    constructor(master?: (stream: StreamInterface<T>) => any);
     readonly lastValue: T;
     readonly transmittedCount: number;
     complete(): this;
     emit(data: T): this;
     error(error: any): this;
+    initEmitBuffer(maxLength?: number): this;
+    initSubscribeBuffer(maxLength?: number): this;
     pause(): this;
     resume(): this;
     subscribe(onData?: (data: T) => any, onError?: (error: any) => any, onComplete?: () => any): SubscriberInterface<T>;
@@ -36,6 +41,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     map(middleware: (data: T, stream?: Stream<T>) => T | Promise<T>): this;
     toPromise(): Promise<T>;
     toOnCompletePromise(): Promise<T>;
+    protected _complete(): this;
     protected _emit(data: T): Promise<State>;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this;

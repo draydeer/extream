@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "@types/es6-shim": "^0.31.34",
-    "@types/node": "^8.0.8"
+    "@types/node": "^8.0.8",
+    "websocket": "^1.0.25"
   }
 }

@@ -1,22 +1,21 @@
+import {COMPLETED, REJECTED} from "./const";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
+import {StreamBuffer} from "./stream_buffer";
+import {State} from "./state";
 import {Subscriber} from "./subscriber";
 import {PrimitiveType} from "./types";
-
-export class State {}
-
-export const COMPLETED = new State();
-
-export const REJECTED = new State();
 
 /**
  * Stream.
  */
 export class Stream<T> implements StreamInterface<T> {
 
+    protected _emitBuffer: StreamBuffer<T>;
     protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | State)[] = [];
-    protected _isPaused: boolean = false;
-    protected _lastValue: T = void 0;
+    protected _isPaused: boolean;
+    protected _lastValue: T;
+    protected _subscribeBuffer: StreamBuffer<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _transmittedCount: number = 0;
 
@@ -28,13 +27,9 @@ export class Stream<T> implements StreamInterface<T> {
         return REJECTED;
     };
 
-    public constructor(assignee?: (stream: StreamInterface<T>) => any) {
-        if (assignee) {
-            if (false === assignee instanceof Function) {
-                throw new Error("Stream assignee must be callable.");
-            }
-
-            assignee(this);
+    public constructor(master?: (stream: StreamInterface<T>) => any) {
+        if (master) {
+            master(this);
         }
     }
 
@@ -47,7 +42,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public complete(): this {
-        this._subscriberOnComplete();
+        this._complete();
 
         return this;
     }
@@ -60,6 +55,18 @@ export class Stream<T> implements StreamInterface<T> {
 
     public error(error: any): this {
         this._subscriberOnError(error);
+
+        return this;
+    }
+
+    public initEmitBuffer(maxLength: number = 0) {
+        this._emitBuffer = this._emitBuffer || new StreamBuffer(maxLength);
+
+        return this;
+    }
+
+    public initSubscribeBuffer(maxLength: number = 0) {
+        this._subscribeBuffer = this._subscribeBuffer || new StreamBuffer(maxLength);
 
         return this;
     }
@@ -162,6 +169,14 @@ export class Stream<T> implements StreamInterface<T> {
         return new Promise<T>((resolve, reject) => {
             this.subscribe(void 0, reject, () => resolve(this._lastValue));
         });
+    }
+
+    protected _complete(): this {
+        this._subscriberOnComplete();
+
+        this._emitBuffer = this._lastValue = this._subscribeBuffer = void 0;
+
+        return this;
     }
 
     protected async _emit(data: T) {

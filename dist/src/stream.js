@@ -35,6 +35,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var stream_buffer_1 = require("./stream_buffer");
 var subscriber_1 = require("./subscriber");
 var State = (function () {
     function State() {
@@ -48,17 +49,12 @@ exports.REJECTED = new State();
  * Stream.
  */
 var Stream = (function () {
-    function Stream(assignee) {
+    function Stream(master) {
         this._flow = [];
-        this._isPaused = false;
-        this._lastValue = void 0;
         this._subscribers = {};
         this._transmittedCount = 0;
-        if (assignee) {
-            if (false === assignee instanceof Function) {
-                throw new Error("Stream assignee must be callable.");
-            }
-            assignee(this);
+        if (master) {
+            master(this);
         }
     }
     Object.defineProperty(Stream, "COMPLETED", {
@@ -92,7 +88,7 @@ var Stream = (function () {
         configurable: true
     });
     Stream.prototype.complete = function () {
-        this._subscriberOnComplete();
+        this._complete();
         return this;
     };
     Stream.prototype.emit = function (data) {
@@ -101,6 +97,16 @@ var Stream = (function () {
     };
     Stream.prototype.error = function (error) {
         this._subscriberOnError(error);
+        return this;
+    };
+    Stream.prototype.initEmitBuffer = function (maxLength) {
+        if (maxLength === void 0) { maxLength = 0; }
+        this._emitBuffer = this._emitBuffer || new stream_buffer_1.StreamBuffer(maxLength);
+        return this;
+    };
+    Stream.prototype.initSubscribeBuffer = function (maxLength) {
+        if (maxLength === void 0) { maxLength = 0; }
+        this._subscribeBuffer = this._subscribeBuffer || new stream_buffer_1.StreamBuffer(maxLength);
         return this;
     };
     Stream.prototype.pause = function () {
@@ -171,6 +177,11 @@ var Stream = (function () {
         return new Promise(function (resolve, reject) {
             _this.subscribe(void 0, reject, function () { return resolve(_this._lastValue); });
         });
+    };
+    Stream.prototype._complete = function () {
+        this._subscriberOnComplete();
+        this._emitBuffer = this._lastValue = this._subscribeBuffer = void 0;
+        return this;
     };
     Stream.prototype._emit = function (data) {
         return __awaiter(this, void 0, void 0, function () {

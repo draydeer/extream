@@ -4,6 +4,7 @@ export interface StreamInterface<T> {
     complete(): this;
     emit(data: T): this;
     error(error: any): this;
+    filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this;
     pause(): this;
     resume(): this;
     subscribe(onData: (data: T) => any, onError?: (error: any) => any, onComplete?: () => any): SubscriberInterface<T>;

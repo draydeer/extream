@@ -2,41 +2,75 @@ import {Stream} from "./stream";
 
 var WebSocketClient = require('websocket').w3cwebsocket;
 
-//const s = new Stream<any>();
-//console.log(WebSockets);
-//s.filter((d) => d == 1).timeout(2000);
-//
-//s.subscribe((d) => console.log(d));
-//s.fork().filter((d) => d === 1).subscribe((d) => console.log('once' + d)).once();
-//
-//setTimeout(() => s.emit('1'), 0);
-//setTimeout(() => s.emit('1'), 1000);
-//
-//setTimeout(() => {
-//
-//}, 10000);
+class WebSocketStream extends Stream<any> {
 
-const s = new Stream<any>((stream) => {
-    var client = new WebSocketClient('ws://127.0.0.1:5004/counter');
+    protected _client: any;
 
-    client.onerror = stream.error.bind(stream);
+    public constructor() {
+        super();
 
-    stream.pause();
+        const client = new WebSocketClient('ws://127.0.0.1:9999/echo');
 
-    client.onopen = function() {
-        console.log('WebSocket Client Connected');
+        this.pause();
 
-        function sendNumber() {
-            if (client.readyState === client.OPEN) {
-                var number = Math.round(Math.random() * 0xFFFFFF);
-                client.send(number.toString());
-                setTimeout(sendNumber, 1000);
-            }
+        client.onclose = super.complete.bind(this);
+        client.onerror = super.error.bind(this);
+        client.onmessage = (data: any) => super.emit(data.data);
+        client.onopen = super.resume.bind(this);
+
+        this._client = client;
+    }
+
+    public emit(data: any): this {
+        if (this._client.readyState === this._client.OPEN) {
+            this._client.send(data);
+        } else {
+            console.error("Not ready.");
         }
-        sendNumber();
-    };
 
-    client.onclose = stream.complete.bind(stream);
+        return this;
+    }
+}
 
-    client.onmessage = stream.emit.bind(stream);
-});
+const w = new WebSocketStream().filter((m) => m == "11" || m == "22");
+
+w.subscribe(
+    (data: any) => {
+        console.log("11: " + data);
+    },
+    (error: any) => {
+        console.log(error);
+    },
+    () => {
+        console.log('complete!');
+    }
+);
+
+w.fork().filter((m) => m == "22").subscribe(
+    (data: any) => {
+        console.log("22: " + data);
+    },
+    (error: any) => {
+        console.log(error);
+    },
+    () => {
+        console.log('complete!');
+    }
+);
+
+w.toPromise().then(() => console.log('resolved!'));
+
+setTimeout(() => {
+    w.emit("1");
+}, 1000);
+
+setTimeout(() => {
+    w.emit("2");
+}, 2000);
+
+setTimeout(() => {
+    w.emit("3");
+}, 2000);
+
+
+setTimeout(() => {}, 1000000);
