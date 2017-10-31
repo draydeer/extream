@@ -1,4 +1,5 @@
 import {Stream} from "./stream";
+import {W3CWebSocketStream} from "./extra/w3cwebsocket_stream";
 
 var WebSocketClient = require('websocket').w3cwebsocket;
 
@@ -32,7 +33,7 @@ class WebSocketStream extends Stream<any> {
     }
 }
 
-const w = new WebSocketStream().filter((m) => m == "11" || m == "22");
+const w = new W3CWebSocketStream('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 
 w.subscribe(
     (data: any) => {
@@ -58,7 +59,7 @@ w.fork().filter((m) => m == "22").subscribe(
     }
 );
 
-w.toPromise().then(() => console.log('resolved!'));
+//w.toPromise().then(() => console.log('resolved!'));
 
 setTimeout(() => {
     w.emit("1");
@@ -70,7 +71,7 @@ setTimeout(() => {
 
 setTimeout(() => {
     w.emit("3");
-}, 2000);
+}, 3000);
 
 
 setTimeout(() => {}, 1000000);

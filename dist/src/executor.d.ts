@@ -1,5 +1,6 @@
 import { Deferred } from "./deferred";
 import { StreamInterface } from "./interfaces/stream_interface";
+import { State } from "./state";
 /**
  * Async wrapper with incoming and outgoing streams.
  */
@@ -8,12 +9,13 @@ export declare class Executor<T> {
     protected _cancelled: Deferred<T>;
     protected _incoming: StreamInterface<T>;
     protected _outgoing: StreamInterface<T>;
+    static readonly CANCELLED: State;
+    constructor(asyncFactory: (executor: Executor<T>) => Promise<T>);
     readonly async: Promise<T>;
     readonly incoming: StreamInterface<T>;
     readonly isCancelled: boolean;
     readonly outgoing: StreamInterface<T>;
     readonly promise: Promise<T>;
-    constructor(asyncFactory: (executor: Executor<T>) => Promise<T>);
     /**
      * Generates Promise.all with scheduled executor cancellation so that on cancel result will be CANCELLED.
      *
@@ -21,8 +23,17 @@ export declare class Executor<T> {
      *
      * @returns {Promise<T>|any}
      */
-    all(args: Promise<T>[]): Promise<T>;
+    all(args: Promise<T>[]): Promise<T[]>;
+    /**
+     * Completes executor closing incoming and outgoing streams.
+     *
+     * @returns {Executor}
+     */
     complete(): this;
+    /**
+     * Cancel executor resolving cancelled deferred.
+     */
+    cancel(): this;
     /**
      * Emits data to incoming stream.
      *

@@ -11,6 +11,7 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var stream_1 = require("./stream");
+var w3cwebsocket_stream_1 = require("./extra/w3cwebsocket_stream");
 var WebSocketClient = require('websocket').w3cwebsocket;
 var WebSocketStream = (function (_super) {
     __extends(WebSocketStream, _super);
@@ -36,7 +37,7 @@ var WebSocketStream = (function (_super) {
     };
     return WebSocketStream;
 }(stream_1.Stream));
-var w = new WebSocketStream().filter(function (m) { return m == "11" || m == "22"; });
+var w = new w3cwebsocket_stream_1.W3CWebSocketStream('ws://127.0.0.1:9999/echo').filter(function (m) { return m == "11" || m == "22"; });
 w.subscribe(function (data) {
     console.log("11: " + data);
 }, function (error) {
@@ -51,7 +52,7 @@ w.fork().filter(function (m) { return m == "22"; }).subscribe(function (data) {
 }, function () {
     console.log('complete!');
 });
-w.toPromise().then(function () { return console.log('resolved!'); });
+//w.toPromise().then(() => console.log('resolved!'));
 setTimeout(function () {
     w.emit("1");
 }, 1000);
@@ -60,5 +61,5 @@ setTimeout(function () {
 }, 2000);
 setTimeout(function () {
     w.emit("3");
-}, 2000);
+}, 3000);
 setTimeout(function () { }, 1000000);

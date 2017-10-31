@@ -68,7 +68,7 @@ export class Executor<T> {
      *
      * @returns {Promise<T>|any}
      */
-    public all(args: Promise<T>[]): Promise<T> {
+    public all(args: Promise<T>[]): Promise<T[]> {
         const promises = Array.from<Promise<T>>(args);
 
         promises.push(this._cancelled.promise);
@@ -77,14 +77,23 @@ export class Executor<T> {
     }
 
     /**
-     * Completes executor cancelling it and closing incoming and outgoing streams.
+     * Completes executor closing incoming and outgoing streams.
      *
      * @returns {Executor}
      */
     public complete(): this {
-        this._cancelled.resolve();
         this._incoming.complete();
+
         this._outgoing.complete();
+
+        return this;
+    }
+
+    /**
+     * Cancel executor resolving cancelled deferred.
+     */
+    public cancel(): this {
+        this._cancelled.resolve(<T>CANCELLED);
 
         return this;
     }

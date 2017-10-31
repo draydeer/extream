@@ -35,16 +35,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var const_1 = require("./const");
 var stream_buffer_1 = require("./stream_buffer");
 var subscriber_1 = require("./subscriber");
-var State = (function () {
-    function State() {
-    }
-    return State;
-}());
-exports.State = State;
-exports.COMPLETED = new State();
-exports.REJECTED = new State();
 /**
  * Stream.
  */
@@ -59,7 +52,7 @@ var Stream = (function () {
     }
     Object.defineProperty(Stream, "COMPLETED", {
         get: function () {
-            return exports.COMPLETED;
+            return const_1.COMPLETED;
         },
         enumerable: true,
         configurable: true
@@ -67,7 +60,7 @@ var Stream = (function () {
     ;
     Object.defineProperty(Stream, "REJECTED", {
         get: function () {
-            return exports.REJECTED;
+            return const_1.REJECTED;
         },
         enumerable: true,
         configurable: true
@@ -141,8 +134,8 @@ var Stream = (function () {
     };
     Stream.prototype.filter = function (middleware) {
         this._flow.push(middleware instanceof Function
-            ? function (data, stream) { return middleware(data, stream) ? data : exports.REJECTED; }
-            : function (data, stream) { return middleware === data ? data : exports.REJECTED; });
+            ? function (data, stream) { return middleware(data, stream) ? data : const_1.REJECTED; }
+            : function (data, stream) { return middleware === data ? data : const_1.REJECTED; });
         return this;
     };
     Stream.prototype.first = function (middleware) {
@@ -160,7 +153,8 @@ var Stream = (function () {
     };
     Stream.prototype.fork = function () {
         var stream = new Stream();
-        return this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream)).stream;
+        this.subscribeStream(stream);
+        return stream;
     };
     Stream.prototype.map = function (middleware) {
         this._flow.push(middleware);
@@ -169,7 +163,7 @@ var Stream = (function () {
     Stream.prototype.toPromise = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.subscribe(resolve, reject, function () { return reject(exports.COMPLETED); }).once();
+            _this.subscribe(resolve, reject, function () { return reject(const_1.COMPLETED); }).once();
         });
     };
     Stream.prototype.toOnCompletePromise = function () {
@@ -201,7 +195,7 @@ var Stream = (function () {
                         return [4 /*yield*/, middleware(temp, this)];
                     case 2:
                         temp = _b.sent();
-                        if (temp === exports.REJECTED) {
+                        if (temp === const_1.REJECTED) {
                             return [2 /*return*/];
                         }
                         _b.label = 3;

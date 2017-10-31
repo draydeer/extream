@@ -92,11 +92,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T> {
-        return this.subscribe(
-            stream.emit.bind(stream),
-            stream.error.bind(stream),
-            stream.complete.bind(stream)
-        );
+        return this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream));
     }
 
     public unsubscribe(subscriber: SubscriberInterface<T>): this {
@@ -106,7 +102,9 @@ export class Stream<T> implements StreamInterface<T> {
     // middlewares
 
     public delay(milliseconds: number): this {
-        this._flow.push((data) => new Promise<T>((resolve) => setTimeout(() => resolve(data), milliseconds)));
+        this._flow.push(
+            (data) => new Promise<T>((resolve) => setTimeout(() => resolve(data), milliseconds))
+        );
 
         return this;
     }
@@ -150,24 +148,32 @@ export class Stream<T> implements StreamInterface<T> {
     public fork(): StreamInterface<T> {
         let stream: Stream<T> = new Stream<T>();
 
-        return this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream)).stream;
+        this.subscribeStream(stream);
+
+        return stream;
     }
 
     public map(middleware: (data: T, stream?: Stream<T>) => T | Promise<T>): this {
-        this._flow.push(middleware);
+        this._flow.push(
+            middleware
+        );
 
         return this;
     }
 
     public toPromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(resolve, reject, () => reject(COMPLETED)).once();
+            this.subscribe(
+                resolve, reject, () => reject(COMPLETED)
+            ).once();
         });
     }
 
     public toOnCompletePromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(void 0, reject, () => resolve(this._lastValue));
+            this.subscribe(
+                void 0, reject, () => resolve(this._lastValue)
+            );
         });
     }
 

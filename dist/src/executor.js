@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var const_1 = require("./const");
 var deferred_1 = require("./deferred");
 var stream_1 = require("./stream");
 /**
@@ -23,6 +24,14 @@ var Executor = (function () {
             throw error;
         });
     }
+    Object.defineProperty(Executor, "CANCELLED", {
+        get: function () {
+            return const_1.CANCELLED;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    ;
     Object.defineProperty(Executor.prototype, "async", {
         get: function () {
             return this._async;
@@ -70,10 +79,21 @@ var Executor = (function () {
         promises.push(this._cancelled.promise);
         return Promise.all(promises);
     };
+    /**
+     * Completes executor closing incoming and outgoing streams.
+     *
+     * @returns {Executor}
+     */
     Executor.prototype.complete = function () {
-        this._cancelled.resolve();
         this._incoming.complete();
         this._outgoing.complete();
+        return this;
+    };
+    /**
+     * Cancel executor resolving cancelled deferred.
+     */
+    Executor.prototype.cancel = function () {
+        this._cancelled.resolve(const_1.CANCELLED);
         return this;
     };
     /**

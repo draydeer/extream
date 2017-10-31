@@ -1,10 +1,7 @@
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
 import { StreamBuffer } from "./stream_buffer";
-export declare class State {
-}
-export declare const COMPLETED: State;
-export declare const REJECTED: State;
+import { State } from "./state";
 /**
  * Stream.
  */
