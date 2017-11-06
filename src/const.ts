@@ -1,5 +1,4 @@
-import {State} from "./state";
+import {Cancelled, Completed} from "./errors";
 
-export const CANCELLED = new State();
-export const COMPLETED = new State();
-export const REJECTED = new State();
+export const CANCELLED = new Cancelled();
+export const COMPLETED = new Completed();

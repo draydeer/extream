@@ -39,7 +39,7 @@ export class Deferred<T> {
         return this;
     }
 
-    public reject(error?: T): this {
+    public reject(error?: any): this {
         if (false === this.isCompleted) {
             this._reject(error);
 

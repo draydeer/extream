@@ -16,20 +16,32 @@ var W3CWebSocketStream = (function (_super) {
     __extends(W3CWebSocketStream, _super);
     function W3CWebSocketStream(url) {
         var _this = _super.call(this) || this;
-        var client = new websocket_1.w3cwebsocket(url);
-        _this.pause();
-        client.onclose = _super.prototype.complete.bind(_this);
-        client.onerror = _super.prototype.error.bind(_this);
-        client.onmessage = function (data) { return _super.prototype.emit.call(_this, data.data); };
-        client.onopen = _super.prototype.resume.bind(_this);
-        _this._client = client;
+        _this.init(url);
         return _this;
     }
     W3CWebSocketStream.prototype.emit = function (data) {
         if (this._client.readyState === this._client.OPEN) {
-            this._client.send(data);
+            this._client.send(String(data));
         }
         return this;
+    };
+    W3CWebSocketStream.prototype.init = function (url) {
+        var client = new websocket_1.w3cwebsocket(url);
+        this.pause();
+        client.onclose = this.onComplete.bind(this);
+        client.onerror = this.onError.bind(this);
+        client.onmessage = this.onData.bind(this);
+        client.onopen = _super.prototype.resume.bind(this);
+        this._client = client;
+    };
+    W3CWebSocketStream.prototype.onComplete = function () {
+        _super.prototype.complete.call(this);
+    };
+    W3CWebSocketStream.prototype.onData = function (data) {
+        _super.prototype.emit.call(this, data.data);
+    };
+    W3CWebSocketStream.prototype.onError = function (error) {
+        _super.prototype.error.call(this, error);
     };
     return W3CWebSocketStream;
 }(stream_1.Stream));

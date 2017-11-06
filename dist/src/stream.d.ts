@@ -1,13 +1,12 @@
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
 import { StreamBuffer } from "./stream_buffer";
-import { State } from "./state";
 /**
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
     protected _emitBuffer: StreamBuffer<T>;
-    protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | State)[];
+    protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | Error)[];
     protected _isPaused: boolean;
     protected _lastValue: T;
     protected _subscribeBuffer: StreamBuffer<T>;
@@ -15,8 +14,7 @@ export declare class Stream<T> implements StreamInterface<T> {
         [key: string]: SubscriberInterface<T>;
     };
     protected _transmittedCount: number;
-    static readonly COMPLETED: State;
-    static readonly REJECTED: State;
+    static readonly COMPLETED: Error;
     constructor(master?: (stream: StreamInterface<T>) => any);
     readonly lastValue: T;
     readonly transmittedCount: number;
@@ -39,7 +37,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     toPromise(): Promise<T>;
     toOnCompletePromise(): Promise<T>;
     protected _complete(): this;
-    protected _emit(data: T): Promise<State>;
+    protected _emit(data: T): Promise<Error | T>;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this;
     protected _subscriberOnComplete(): this;

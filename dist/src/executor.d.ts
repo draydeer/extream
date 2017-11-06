@@ -1,6 +1,5 @@
 import { Deferred } from "./deferred";
 import { StreamInterface } from "./interfaces/stream_interface";
-import { State } from "./state";
 /**
  * Async wrapper with incoming and outgoing streams.
  */
@@ -9,7 +8,7 @@ export declare class Executor<T> {
     protected _cancelled: Deferred<T>;
     protected _incoming: StreamInterface<T>;
     protected _outgoing: StreamInterface<T>;
-    static readonly CANCELLED: State;
+    static readonly CANCELLED: Error;
     constructor(asyncFactory: (executor: Executor<T>) => Promise<T>);
     readonly async: Promise<T>;
     readonly incoming: StreamInterface<T>;
@@ -17,13 +16,13 @@ export declare class Executor<T> {
     readonly outgoing: StreamInterface<T>;
     readonly promise: Promise<T>;
     /**
-     * Generates Promise.all with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.all with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
-     * @returns {Promise<T>|any}
+     * @returns {Promise<T[]>|any}
      */
-    all(args: Promise<T>[]): Promise<T[]>;
+    all(promises: Promise<T>[]): Promise<T[]>;
     /**
      * Completes executor closing incoming and outgoing streams.
      *
@@ -31,7 +30,7 @@ export declare class Executor<T> {
      */
     complete(): this;
     /**
-     * Cancel executor resolving cancelled deferred.
+     * Cancel executor rejecting cancelled deferred.
      */
     cancel(): this;
     /**
@@ -43,13 +42,13 @@ export declare class Executor<T> {
      */
     emit(data: T): this;
     /**
-     * Generates Promise.race with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.race with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
      * @returns {Promise<T>}
      */
-    race(args: Promise<T>[]): Promise<T>;
+    race(promises: Promise<T>[]): Promise<T>;
     /**
      * Sends data to outgoing stream.
      *

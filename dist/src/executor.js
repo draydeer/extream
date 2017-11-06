@@ -68,16 +68,18 @@ var Executor = (function () {
         configurable: true
     });
     /**
-     * Generates Promise.all with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.all with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
-     * @returns {Promise<T>|any}
+     * @returns {Promise<T[]>|any}
      */
-    Executor.prototype.all = function (args) {
-        var promises = Array.from(args);
-        promises.push(this._cancelled.promise);
-        return Promise.all(promises);
+    Executor.prototype.all = function (promises) {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            Promise.all(promises).then(resolve, reject);
+            _this._cancelled.promise.catch(reject);
+        });
     };
     /**
      * Completes executor closing incoming and outgoing streams.
@@ -90,10 +92,10 @@ var Executor = (function () {
         return this;
     };
     /**
-     * Cancel executor resolving cancelled deferred.
+     * Cancel executor rejecting cancelled deferred.
      */
     Executor.prototype.cancel = function () {
-        this._cancelled.resolve(const_1.CANCELLED);
+        this._cancelled.reject(const_1.CANCELLED);
         return this;
     };
     /**
@@ -108,16 +110,16 @@ var Executor = (function () {
         return this;
     };
     /**
-     * Generates Promise.race with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.race with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
      * @returns {Promise<T>}
      */
-    Executor.prototype.race = function (args) {
-        var promises = Array.from(args);
-        promises.push(this._cancelled.promise);
-        return Promise.race(promises);
+    Executor.prototype.race = function (promises) {
+        var promisesList = Array.from(promises);
+        promisesList.push(this._cancelled.promise);
+        return Promise.race(promisesList);
     };
     /**
      * Sends data to outgoing stream.

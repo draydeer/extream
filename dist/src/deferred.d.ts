@@ -10,5 +10,5 @@ export declare class Deferred<T> {
     readonly isRejected: boolean;
     readonly promise: Promise<T>;
     resolve(data?: T): this;
-    reject(error?: T): this;
+    reject(error?: any): this;
 }

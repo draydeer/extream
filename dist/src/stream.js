@@ -58,14 +58,6 @@ var Stream = (function () {
         configurable: true
     });
     ;
-    Object.defineProperty(Stream, "REJECTED", {
-        get: function () {
-            return const_1.REJECTED;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    ;
     Object.defineProperty(Stream.prototype, "lastValue", {
         get: function () {
             return this._lastValue;
@@ -134,8 +126,8 @@ var Stream = (function () {
     };
     Stream.prototype.filter = function (middleware) {
         this._flow.push(middleware instanceof Function
-            ? function (data, stream) { return middleware(data, stream) ? data : const_1.REJECTED; }
-            : function (data, stream) { return middleware === data ? data : const_1.REJECTED; });
+            ? function (data, stream) { return middleware(data, stream) ? data : const_1.CANCELLED; }
+            : function (data, stream) { return middleware === data ? data : const_1.CANCELLED; });
         return this;
     };
     Stream.prototype.first = function (middleware) {
@@ -195,7 +187,7 @@ var Stream = (function () {
                         return [4 /*yield*/, middleware(temp, this)];
                     case 2:
                         temp = _b.sent();
-                        if (temp === const_1.REJECTED) {
+                        if (temp === const_1.CANCELLED) {
                             return [2 /*return*/];
                         }
                         _b.label = 3;

@@ -1,7 +1,6 @@
 import {CANCELLED} from "./const";
 import {Deferred} from "./deferred";
 import {StreamInterface} from "./interfaces/stream_interface";
-import {State} from "./state";
 import {Stream} from "./stream";
 
 /**
@@ -14,7 +13,7 @@ export class Executor<T> {
     protected _incoming: StreamInterface<T> = new Stream<T>();
     protected _outgoing: StreamInterface<T> = new Stream<T>();
 
-    public static get CANCELLED(): State {
+    public static get CANCELLED(): Error {
         return CANCELLED;
     };
 
@@ -62,18 +61,18 @@ export class Executor<T> {
     }
 
     /**
-     * Generates Promise.all with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.all with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
-     * @returns {Promise<T>|any}
+     * @returns {Promise<T[]>|any}
      */
-    public all(args: Promise<T>[]): Promise<T[]> {
-        const promises = Array.from<Promise<T>>(args);
+    public all(promises: Promise<T>[]): Promise<T[]> {
+        return new Promise<T[]>((resolve, reject) => {
+            Promise.all(promises).then(resolve, reject);
 
-        promises.push(this._cancelled.promise);
-
-        return Promise.all<T>(promises);
+            this._cancelled.promise.catch(reject);
+        });
     }
 
     /**
@@ -90,10 +89,10 @@ export class Executor<T> {
     }
 
     /**
-     * Cancel executor resolving cancelled deferred.
+     * Cancel executor rejecting cancelled deferred.
      */
     public cancel(): this {
-        this._cancelled.resolve(<T>CANCELLED);
+        this._cancelled.reject(CANCELLED);
 
         return this;
     }
@@ -112,18 +111,18 @@ export class Executor<T> {
     }
 
     /**
-     * Generates Promise.race with scheduled executor cancellation so that on cancel result will be CANCELLED.
+     * Generates Promise.race with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param args
+     * @param promises
      *
      * @returns {Promise<T>}
      */
-    public race(args: Promise<T>[]): Promise<T> {
-        const promises = Array.from<Promise<T>>(args);
+    public race(promises: Promise<T>[]): Promise<T> {
+        const promisesList = Array.from<Promise<T>>(promises);
 
-        promises.push(this._cancelled.promise);
+        promisesList.push(this._cancelled.promise);
 
-        return Promise.race<T>(promises);
+        return Promise.race<T>(promisesList);
     }
 
     /**

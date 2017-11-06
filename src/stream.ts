@@ -1,8 +1,7 @@
-import {COMPLETED, REJECTED} from "./const";
+import {CANCELLED, COMPLETED} from "./const";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
 import {StreamBuffer} from "./stream_buffer";
-import {State} from "./state";
 import {Subscriber} from "./subscriber";
 import {PrimitiveType} from "./types";
 
@@ -12,19 +11,15 @@ import {PrimitiveType} from "./types";
 export class Stream<T> implements StreamInterface<T> {
 
     protected _emitBuffer: StreamBuffer<T>;
-    protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | State)[] = [];
+    protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | Error)[] = [];
     protected _isPaused: boolean;
     protected _lastValue: T;
     protected _subscribeBuffer: StreamBuffer<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _transmittedCount: number = 0;
 
-    public static get COMPLETED(): State {
+    public static get COMPLETED(): Error {
         return COMPLETED;
-    };
-
-    public static get REJECTED(): State {
-        return REJECTED;
     };
 
     public constructor(master?: (stream: StreamInterface<T>) => any) {
@@ -122,8 +117,8 @@ export class Stream<T> implements StreamInterface<T> {
     public filter(middleware: T|((data: T, stream?: Stream<T>) => boolean)): this {
         this._flow.push(
             middleware instanceof Function
-                ? (data, stream) => middleware(data, stream) ? data : REJECTED
-                : (data, stream) => middleware === data ? data : REJECTED
+                ? (data, stream) => middleware(data, stream) ? data : CANCELLED
+                : (data, stream) => middleware === data ? data : CANCELLED
         );
 
         return this;
@@ -190,12 +185,12 @@ export class Stream<T> implements StreamInterface<T> {
             return;
         }
 
-        let temp: T | Promise<T> | State = data;
+        let temp: T | Promise<T> | Error = data;
 
         for (const middleware of this._flow) {
             temp = await middleware(<T>temp, this);
 
-            if (temp === REJECTED) {
+            if (temp === CANCELLED) {
                 return;
             }
         }
