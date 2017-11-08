@@ -1,7 +1,7 @@
 import {Stream} from "./stream";
-import {W3CWebSocketStream} from "./extra/w3cwebsocket_stream";
+import {WebsocketW3CWebsocketStream} from "./extra/websocket_w3cwebsocket_stream";
 
-const w = new W3CWebSocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
+const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 
 w.subscribe(
     (data: any) => {

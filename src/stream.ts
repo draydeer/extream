@@ -28,6 +28,10 @@ export class Stream<T> implements StreamInterface<T> {
         }
     }
 
+    public get isPaused(): boolean {
+        return this._isPaused;
+    }
+
     public get lastValue(): T {
         return this._lastValue;
     }

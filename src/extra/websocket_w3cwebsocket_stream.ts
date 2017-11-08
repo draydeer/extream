@@ -1,7 +1,7 @@
 import {Stream} from "../stream";
 import {w3cwebsocket as WebSocketClient} from "websocket";
 
-export class W3CWebSocketStream<T> extends Stream<T> {
+export class WebsocketW3CWebsocketStream<T> extends Stream<T> {
 
     protected _client: any;
 

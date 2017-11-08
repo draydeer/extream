@@ -1,5 +1,5 @@
 import { Stream } from "../stream";
-export declare class W3CWebSocketStream<T> extends Stream<T> {
+export declare class WebsocketW3CWebsocketStream<T> extends Stream<T> {
     protected _client: any;
     constructor(url: string);
     emit(data: T): this;
