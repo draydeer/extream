@@ -18,14 +18,24 @@ export class Stream<T> implements StreamInterface<T> {
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _transmittedCount: number = 0;
 
+    public static fromPromise(promise: Promise<T>): StreamInterface<T> {
+        const stream = new this();
+
+        promise.then(stream.emitAndComplete.bind(stream)).catch(stream.error.bind(stream));
+
+        return stream;
+    }
+
+    public static merge(asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
+
+    }
+
     public static get COMPLETED(): Error {
         return COMPLETED;
     };
 
-    public constructor(master?: (stream: StreamInterface<T>) => any) {
-        if (master) {
-            master(this);
-        }
+    public constructor() {
+
     }
 
     public get isPaused(): boolean {
@@ -34,6 +44,10 @@ export class Stream<T> implements StreamInterface<T> {
 
     public get lastValue(): T {
         return this._lastValue;
+    }
+
+    public get subscribersCount(): number {
+        return 0;
     }
 
     public get transmittedCount(): number {
@@ -48,6 +62,12 @@ export class Stream<T> implements StreamInterface<T> {
 
     public emit(data: T): this {
         this._emit(data);
+
+        return this;
+    }
+
+    public emitAndComplete(data: T): this {
+        this._emit(data).then(this.complete.bind(this));
 
         return this;
     }

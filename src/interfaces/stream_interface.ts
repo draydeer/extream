@@ -3,6 +3,7 @@ import {SubscriberInterface} from "./subscriber_interface";
 export interface StreamInterface<T> {
     complete(): this;
     emit(data: T): this;
+    emitAndComplete(data: T): this;
     error(error: any): this;
     filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this;
     pause(): this;

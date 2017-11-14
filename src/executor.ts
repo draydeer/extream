@@ -63,13 +63,13 @@ export class Executor<T> {
     /**
      * Generates Promise.all with scheduled executor cancellation so that on cancel rejects with CANCELLED.
      *
-     * @param promises
+     * @param asyncs
      *
      * @returns {Promise<T[]>|any}
      */
-    public all(promises: Promise<T>[]): Promise<T[]> {
+    public all(asyncs: (Promise<T>|StreamInterface<T>)[]): Promise<T[]> {
         return new Promise<T[]>((resolve, reject) => {
-            Promise.all(promises).then(resolve, reject);
+            Promise.all(asyncs).then(resolve, reject);
 
             this._cancelled.promise.catch(reject);
         });
