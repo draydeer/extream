@@ -11,9 +11,9 @@ import {PrimitiveType} from "./types";
 export class Stream<T> implements StreamInterface<T> {
 
     protected _emitBuffer: StreamBuffer<T>;
-    protected _flow: ((data: T, stream?: Stream<T>) => T | Promise<T> | Error)[] = [];
     protected _isPaused: boolean;
     protected _lastValue: T;
+    protected _middlewares: ((data: T, stream?: Stream<T>) => T | Promise<T> | Error)[] = [];
     protected _subscribeBuffer: StreamBuffer<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _transmittedCount: number = 0;
@@ -121,7 +121,7 @@ export class Stream<T> implements StreamInterface<T> {
     // middlewares
 
     public delay(milliseconds: number): this {
-        this._flow.push(
+        this._middlewares.push(
             (data) => new Promise<T>((resolve) => setTimeout(() => resolve(data), milliseconds))
         );
 
@@ -129,7 +129,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public exec(middleware: T | Promise<T> | ((data: T, stream?: Stream<T>) => T | Promise<T>)): this {
-        //this._flow.push(
+        //this._middlewares.push(
         //    middleware instanceof Promise
         //        ? (data, stream) => middleware
         //        :
@@ -139,7 +139,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public filter(middleware: T|((data: T, stream?: Stream<T>) => boolean)): this {
-        this._flow.push(
+        this._middlewares.push(
             middleware instanceof Function
                 ? (data, stream) => middleware(data, stream) ? data : CANCELLED
                 : (data, stream) => middleware === data ? data : CANCELLED
@@ -151,7 +151,7 @@ export class Stream<T> implements StreamInterface<T> {
     public first(middleware: ((data: T, stream?: Stream<T>) => T | Promise<T>)): this {
         let isFirst: boolean = true;
 
-        this._flow.push((data: T, stream?: Stream<T>) => {
+        this._middlewares.push((data: T, stream?: Stream<T>) => {
             if (isFirst) {
                 isFirst = false;
 
@@ -173,7 +173,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public map(middleware: (data: T, stream?: Stream<T>) => T | Promise<T>): this {
-        this._flow.push(
+        this._middlewares.push(
             middleware
         );
 
@@ -211,7 +211,7 @@ export class Stream<T> implements StreamInterface<T> {
 
         let temp: T | Promise<T> | Error = data;
 
-        for (const middleware of this._flow) {
+        for (const middleware of this._middlewares) {
             temp = await middleware(<T>temp, this);
 
             if (temp === CANCELLED) {
