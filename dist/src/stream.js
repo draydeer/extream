@@ -48,11 +48,21 @@ var Stream = (function () {
         this._transmittedCount = 0;
     }
     Stream.fromPromise = function (promise) {
-        var stream = new this();
+        var stream = new Stream();
         promise.then(stream.emitAndComplete.bind(stream)).catch(stream.error.bind(stream));
         return stream;
     };
-    Stream.merge = function (asyncs) {
+    Stream.merge = function () {
+        var asyncs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            asyncs[_i] = arguments[_i];
+        }
+        var stream = new Stream();
+        asyncs.forEach(function (async) {
+            var mixedStream = async instanceof Promise ? Stream.fromPromise(async) : async;
+            mixedStream.subscribeStream(stream);
+        });
+        return stream;
     };
     Object.defineProperty(Stream, "COMPLETED", {
         get: function () {

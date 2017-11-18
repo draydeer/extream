@@ -65,7 +65,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
             this._onComplete();
         }
 
-        return this;
+        return this.unsubscribe();
     }
 
     public doData(data: T): this {

@@ -45,7 +45,7 @@ var Subscriber = (function () {
         if (this._onComplete) {
             this._onComplete();
         }
-        return this;
+        return this.unsubscribe();
     };
     Subscriber.prototype.doData = function (data) {
         data = this._processMiddleware(data);

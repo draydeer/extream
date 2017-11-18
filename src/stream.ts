@@ -18,16 +18,28 @@ export class Stream<T> implements StreamInterface<T> {
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _transmittedCount: number = 0;
 
-    public static fromPromise(promise: Promise<T>): StreamInterface<T> {
-        const stream = new this();
+    public static fromPromise<T>(promise: Promise<T>): StreamInterface<T> {
+        const stream: StreamInterface<T> = new Stream<T>();
 
-        promise.then(stream.emitAndComplete.bind(stream)).catch(stream.error.bind(stream));
+        promise.then(
+            stream.emitAndComplete.bind(stream)
+        ).catch(
+            stream.error.bind(stream)
+        );
 
         return stream;
     }
 
-    public static merge(asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
+    public static merge<T>(...asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
+        const stream: StreamInterface<T> = new Stream<T>();
 
+        asyncs.forEach((async) => {
+            const mixedStream: StreamInterface<T> = async instanceof Promise ? Stream.fromPromise(async) : async;
+
+            mixedStream.subscribeStream(stream);
+        });
+
+        return stream;
     }
 
     public static get COMPLETED(): Error {

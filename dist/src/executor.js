@@ -10,6 +10,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+var agent_1 = require("./agent");
 var const_1 = require("./const");
 var stream_1 = require("./stream");
 var Executor = (function (_super) {
@@ -17,10 +18,17 @@ var Executor = (function (_super) {
     function Executor(async) {
         var _this = _super.call(this) || this;
         _this._incomingStream = new stream_1.Stream();
-        _this._agent = new Agent(_this, _super.prototype.emit.bind(_this), _this._incomingStream);
+        _this._agent = new agent_1.Agent(_this);
         _this._async = async;
         return _this;
     }
+    Object.defineProperty(Executor.prototype, "incoming", {
+        get: function () {
+            return this._incomingStream;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Executor.prototype, "result", {
         get: function () {
             return this._result;
@@ -43,10 +51,11 @@ var Executor = (function (_super) {
         this._incomingStream.error(const_1.CANCELLED);
         return this;
     };
-    Executor.prototype.complete = function () {
-        this._incomingStream.complete();
-        return this;
-    };
+    //public complete(): this {
+    //    this._incomingStream.complete();
+    //
+    //    return this;
+    //}
     Executor.prototype.emit = function (data) {
         this._incomingStream.emit(data);
         return this;
@@ -64,40 +73,15 @@ var Executor = (function (_super) {
             _this._promise = void 0;
             _this._result = result;
             _super.prototype.emit.call(_this, result);
+            return result;
         }).catch(function (error) {
             _this._promise = void 0;
             _this._error = error;
             _super.prototype.error.call(_this, error);
+            throw error;
         });
         return this;
     };
     return Executor;
 }(stream_1.Stream));
 exports.Executor = Executor;
-var Agent = (function () {
-    function Agent(executor, emit, incomingStream) {
-        this._emit = emit;
-        this._executor = executor;
-        this._incomingStream = incomingStream;
-    }
-    Object.defineProperty(Agent.prototype, "incoming", {
-        get: function () {
-            return this._incomingStream;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(Agent.prototype, "incomingStream", {
-        get: function () {
-            return this._incomingStream;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Agent.prototype.emit = function (data) {
-        this._emit(data);
-        return this;
-    };
-    return Agent;
-}());
-exports.Agent = Agent;
