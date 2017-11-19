@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var StreamBuffer = (function () {
+var StreamBuffer = /** @class */ (function () {
     function StreamBuffer(maxLength) {
         if (maxLength === void 0) { maxLength = 0; }
         this._buffer = [];

@@ -13,7 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var agent_1 = require("./agent");
 var const_1 = require("./const");
 var stream_1 = require("./stream");
-var Executor = (function (_super) {
+var Executor = /** @class */ (function (_super) {
     __extends(Executor, _super);
     function Executor(async) {
         var _this = _super.call(this) || this;

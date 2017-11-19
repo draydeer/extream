@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var Deferred = (function () {
+var Deferred = /** @class */ (function () {
     function Deferred() {
         var _this = this;
         this._isResolved = false;

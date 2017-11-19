@@ -12,7 +12,7 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var stream_1 = require("../stream");
 var websocket_1 = require("websocket");
-var WebsocketW3CWebsocketStream = (function (_super) {
+var WebsocketW3CWebsocketStream = /** @class */ (function (_super) {
     __extends(WebsocketW3CWebsocketStream, _super);
     function WebsocketW3CWebsocketStream(url) {
         var _this = _super.call(this) || this;

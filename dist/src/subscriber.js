@@ -4,7 +4,7 @@ var ID = 10000000;
 /**
  * Subscriber.
  */
-var Subscriber = (function () {
+var Subscriber = /** @class */ (function () {
     function Subscriber(stream, onData, onError, onComplete) {
         this._id = String(ID++);
         this._onComplete = onComplete;

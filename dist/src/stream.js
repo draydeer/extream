@@ -41,7 +41,7 @@ var subscriber_1 = require("./subscriber");
 /**
  * Stream.
  */
-var Stream = (function () {
+var Stream = /** @class */ (function () {
     function Stream() {
         this._middlewares = [];
         this._subscribers = {};

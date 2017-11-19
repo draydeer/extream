@@ -10,7 +10,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var Cancelled = (function (_super) {
+var Cancelled = /** @class */ (function (_super) {
     __extends(Cancelled, _super);
     function Cancelled() {
         return _super !== null && _super.apply(this, arguments) || this;
@@ -18,7 +18,7 @@ var Cancelled = (function (_super) {
     return Cancelled;
 }(Error));
 exports.Cancelled = Cancelled;
-var Completed = (function (_super) {
+var Completed = /** @class */ (function (_super) {
     __extends(Completed, _super);
     function Completed() {
         return _super !== null && _super.apply(this, arguments) || this;

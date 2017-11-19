@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var stream_1 = require("./stream");
-var Agent = (function () {
+var Agent = /** @class */ (function () {
     function Agent(executor) {
         this._executor = executor;
     }
@@ -14,7 +14,8 @@ var Agent = (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             asyncs[_i] = arguments[_i];
         }
-        return null;
+        var stream = stream_1.Stream.merge.apply(stream_1.Stream, asyncs);
+        return stream;
     };
     return Agent;
 }());
