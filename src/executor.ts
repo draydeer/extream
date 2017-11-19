@@ -23,6 +23,10 @@ export class Executor<T> extends Stream<T> {
         return this._incomingStream;
     }
 
+    public get isRunning(): boolean {
+        return !! this._promise;
+    }
+
     public get result(): T {
         return this._result;
     }
