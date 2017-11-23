@@ -29,6 +29,13 @@ var Executor = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Executor.prototype, "isRunning", {
+        get: function () {
+            return !!this._promise;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Executor.prototype, "result", {
         get: function () {
             return this._result;
@@ -47,21 +54,37 @@ var Executor = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Executor.prototype.cancel = function () {
-        this._incomingStream.error(const_1.CANCELLED);
-        return this;
+    Executor.prototype.catch = function (onError) {
+        return this.promise.catch(onError);
     };
-    //public complete(): this {
-    //    this._incomingStream.complete();
-    //
-    //    return this;
-    //}
+    Executor.prototype.complete = function () {
+        this._incomingStream.error(const_1.COMPLETED);
+        return _super.prototype.complete.call(this);
+    };
     Executor.prototype.emit = function (data) {
         this._incomingStream.emit(data);
         return this;
     };
     Executor.prototype.error = function (error) {
-        this._incomingStream.emit(error);
+        this._incomingStream.error(error);
+        return this;
+    };
+    Executor.prototype.pipeToIncoming = function () {
+        var _this = this;
+        var streams = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            streams[_i] = arguments[_i];
+        }
+        streams.forEach(function (stream) { return stream.subscribeStream(_this._incomingStream); });
+        return this;
+    };
+    Executor.prototype.pipeOutgoingTo = function () {
+        var _this = this;
+        var streams = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            streams[_i] = arguments[_i];
+        }
+        streams.forEach(function (stream) { return _this.subscribeStream(stream); });
         return this;
     };
     Executor.prototype.run = function () {
@@ -81,6 +104,9 @@ var Executor = /** @class */ (function (_super) {
             throw error;
         });
         return this;
+    };
+    Executor.prototype.then = function (onFulfilled) {
+        return this.promise.then(onFulfilled);
     };
     return Executor;
 }(stream_1.Stream));

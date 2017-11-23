@@ -10,16 +10,20 @@ export class Agent<T> {
         this._executor = executor;
     }
 
+    // public all(...asyncs: (Promise<T>|StreamInterface<T>)[]): Promise<T[]> {
+    //
+    // }
+
     public emit(data: T): this {
         Stream.prototype.emit.call(this._executor, data);
 
         return this;
     }
 
-    public race(...asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
-        const stream = Stream.merge(...asyncs);
+    public race(...asyncs: (Promise<T>|StreamInterface<T>)[]): Promise<T> {
+        asyncs.push(this._executor.incoming);
 
-        return stream;
+        return Stream.merge(...asyncs).first().toPromise();
     }
 
 }

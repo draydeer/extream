@@ -1,9 +1,11 @@
 import {Agent} from "./agent";
-import {CANCELLED} from "./const";
+import {CANCELLED, COMPLETED} from "./const";
 import {Stream} from "./stream";
 import {StreamInterface} from "./interfaces/stream_interface";
+import {SubscriberInterface} from "./interfaces/subscriber_interface";
+import {OnData, OnError} from "./types";
 
-export class Executor<T> extends Stream<T> {
+export class Executor<T> extends Stream<T> implements Promise<T> {
 
     protected _agent: Agent<T>;
     protected _async: (agent: Agent<T>) => Promise<T>;
@@ -41,17 +43,15 @@ export class Executor<T> extends Stream<T> {
         return this._promise;
     }
 
-    public cancel(): this {
-        this._incomingStream.error(CANCELLED);
-
-        return this;
+    public catch(onError?: OnError): Promise<T> {
+        return this.promise.catch(onError);
     }
 
-    //public complete(): this {
-    //    this._incomingStream.complete();
-    //
-    //    return this;
-    //}
+    public complete(): this {
+        this._incomingStream.error(COMPLETED);
+
+        return super.complete();
+    }
 
     public emit(data: T): this {
         this._incomingStream.emit(data);
@@ -60,7 +60,19 @@ export class Executor<T> extends Stream<T> {
     }
 
     public error(error: any): this {
-        this._incomingStream.emit(error);
+        this._incomingStream.error(error);
+
+        return this;
+    }
+
+    public pipeToIncoming(...streams: StreamInterface<T>[]): this {
+        streams.forEach((stream) => stream.subscribeStream(this._incomingStream));
+
+        return this;
+    }
+
+    public pipeOutgoingTo(...streams: StreamInterface<T>[]): this {
+        streams.forEach((stream) => this.subscribeStream(stream));
 
         return this;
     }
@@ -87,6 +99,10 @@ export class Executor<T> extends Stream<T> {
         });
 
         return this;
+    }
+
+    public then(onFulfilled?: OnData<T>): Promise<T> {
+        return this.promise.then(onFulfilled);
     }
 
 }

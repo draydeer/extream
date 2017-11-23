@@ -4,5 +4,5 @@ export declare class Agent<T> {
     protected _executor: Executor<T>;
     constructor(executor: Executor<T>);
     emit(data: T): this;
-    race(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
+    race(...asyncs: (Promise<T> | StreamInterface<T>)[]): Promise<T>;
 }

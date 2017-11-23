@@ -1,5 +1,6 @@
-import {SubscriberInterface} from "./interfaces/subscriber_interface";
 import {StreamInterface} from "./interfaces/stream_interface";
+import {SubscriberInterface} from "./interfaces/subscriber_interface";
+import {OnComplete, OnData, OnError} from "./types";
 
 let ID = 10000000;
 
@@ -10,9 +11,9 @@ export class Subscriber<T> implements SubscriberInterface<T> {
 
     protected _id: string;
     protected _middleware;
-    protected _onComplete: () => any;
-    protected _onData: (value: T) => any;
-    protected _onError: (error: any) => any;
+    protected _onComplete: OnComplete;
+    protected _onData: OnData<T>;
+    protected _onError: OnError;
     protected _stream: StreamInterface<T>;
 
     public get id() {
@@ -23,12 +24,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         return this._stream;
     }
 
-    constructor(
-        stream: StreamInterface<T>,
-        onData?: (data: T) => any,
-        onError?: (error: any) => any,
-        onComplete?: () => any
-    ) {
+    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete) {
         this._id = String(ID ++);
         this._onComplete = onComplete;
         this._onError = onError;

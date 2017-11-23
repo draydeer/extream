@@ -36,17 +36,25 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var const_1 = require("./const");
-var stream_buffer_1 = require("./stream_buffer");
 var subscriber_1 = require("./subscriber");
 /**
  * Stream.
  */
 var Stream = /** @class */ (function () {
     function Stream() {
-        this._middlewares = [];
+        //protected _subscribeBuffer: StreamBuffer<T>;
         this._subscribers = {};
+        this._subscribersCount = 0;
         this._transmittedCount = 0;
     }
+    Object.defineProperty(Stream, "COMPLETED", {
+        get: function () {
+            return const_1.COMPLETED;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    ;
     Stream.fromPromise = function (promise) {
         var stream = new Stream();
         promise.then(stream.emitAndComplete.bind(stream)).catch(stream.error.bind(stream));
@@ -64,14 +72,13 @@ var Stream = /** @class */ (function () {
         });
         return stream;
     };
-    Object.defineProperty(Stream, "COMPLETED", {
-        get: function () {
-            return const_1.COMPLETED;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    ;
+    Stream.race = function () {
+        var asyncs = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            asyncs[_i] = arguments[_i];
+        }
+        return Stream.merge.apply(Stream, asyncs).first();
+    };
     Object.defineProperty(Stream.prototype, "isPaused", {
         get: function () {
             return this._isPaused;
@@ -88,7 +95,7 @@ var Stream = /** @class */ (function () {
     });
     Object.defineProperty(Stream.prototype, "subscribersCount", {
         get: function () {
-            return 0;
+            return this._subscribersCount;
         },
         enumerable: true,
         configurable: true
@@ -116,16 +123,22 @@ var Stream = /** @class */ (function () {
         this._subscriberOnError(error);
         return this;
     };
-    Stream.prototype.initEmitBuffer = function (maxLength) {
-        if (maxLength === void 0) { maxLength = 0; }
-        this._emitBuffer = this._emitBuffer || new stream_buffer_1.StreamBuffer(maxLength);
-        return this;
+    Stream.prototype.fork = function () {
+        var stream = new Stream();
+        this.subscribeStream(stream);
+        return stream;
     };
-    Stream.prototype.initSubscribeBuffer = function (maxLength) {
-        if (maxLength === void 0) { maxLength = 0; }
-        this._subscribeBuffer = this._subscribeBuffer || new stream_buffer_1.StreamBuffer(maxLength);
-        return this;
-    };
+    // public initEmitBuffer(maxLength: number = 0) {
+    //     this._emitBuffer = this._emitBuffer || new StreamBuffer(maxLength);
+    //
+    //     return this;
+    // }
+    //
+    // public initSubscribeBuffer(maxLength: number = 0) {
+    //     this._subscribeBuffer = this._subscribeBuffer || new StreamBuffer(maxLength);
+    //
+    //     return this;
+    // }
     Stream.prototype.pause = function () {
         this._isPaused = true;
         return this;
@@ -137,15 +150,25 @@ var Stream = /** @class */ (function () {
     Stream.prototype.subscribe = function (onData, onError, onComplete) {
         return this._subscriberAdd(new subscriber_1.Subscriber(this, onData, onError, onComplete));
     };
+    Stream.prototype.subscribeOnComplete = function (onComplete) {
+        return this._subscriberAdd(new subscriber_1.Subscriber(this, void 0, void 0, onComplete));
+    };
     Stream.prototype.subscribeStream = function (stream) {
-        return this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream));
+        var subscription = this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream));
+        stream.subscribeOnComplete(subscription.unsubscribe.bind(subscription));
+        return subscription;
     };
     Stream.prototype.unsubscribe = function (subscriber) {
         return this._subscriberRemove(subscriber);
     };
     // middlewares
     Stream.prototype.delay = function (milliseconds) {
-        this._middlewares.push(function (data) { return new Promise(function (resolve) { return setTimeout(function () { return resolve(data); }, milliseconds); }); });
+        this._middlewareAdd(function (data) { return new Promise(function (resolve) { return setTimeout(function () { return resolve(data); }, milliseconds); }); });
+        return this;
+    };
+    Stream.prototype.dispatch = function () {
+        var _this = this;
+        this._middlewareAdd(function (data, stream) { return _this._subscriberOnData(data) && data; });
         return this;
     };
     Stream.prototype.exec = function (middleware) {
@@ -157,31 +180,18 @@ var Stream = /** @class */ (function () {
         return this;
     };
     Stream.prototype.filter = function (middleware) {
-        this._middlewares.push(middleware instanceof Function
+        this._middlewareAdd(middleware instanceof Function
             ? function (data, stream) { return middleware(data, stream) ? data : const_1.CANCELLED; }
             : function (data, stream) { return middleware === data ? data : const_1.CANCELLED; });
         return this;
     };
-    Stream.prototype.first = function (middleware) {
-        var isFirst = true;
-        this._middlewares.push(function (data, stream) {
-            if (isFirst) {
-                isFirst = false;
-                return middleware(data, stream);
-            }
-            else {
-                return data;
-            }
-        });
+    Stream.prototype.first = function () {
+        var _this = this;
+        this._middlewareAdd(function (data, stream) { return _this._subscriberOnData(data).complete() && data; });
         return this;
     };
-    Stream.prototype.fork = function () {
-        var stream = new Stream();
-        this.subscribeStream(stream);
-        return stream;
-    };
     Stream.prototype.map = function (middleware) {
-        this._middlewares.push(middleware);
+        this._middlewareAdd(middleware);
         return this;
     };
     Stream.prototype.toPromise = function () {
@@ -198,31 +208,31 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype._complete = function () {
         this._subscriberOnComplete();
-        this._emitBuffer = this._lastValue = this._subscribeBuffer = void 0;
         return this;
     };
     Stream.prototype._emit = function (data) {
         return __awaiter(this, void 0, void 0, function () {
-            var temp, _i, _a, middleware;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var temp, _i, _a, middleware, _b, _c, middleware;
+            return __generator(this, function (_d) {
+                switch (_d.label) {
                     case 0:
                         if (this._isPaused) {
                             return [2 /*return*/];
                         }
                         temp = data;
+                        if (!this._middlewares) return [3 /*break*/, 4];
                         _i = 0, _a = this._middlewares;
-                        _b.label = 1;
+                        _d.label = 1;
                     case 1:
                         if (!(_i < _a.length)) return [3 /*break*/, 4];
                         middleware = _a[_i];
                         return [4 /*yield*/, middleware(temp, this)];
                     case 2:
-                        temp = _b.sent();
+                        temp = _d.sent();
                         if (temp === const_1.CANCELLED) {
                             return [2 /*return*/];
                         }
-                        _b.label = 3;
+                        _d.label = 3;
                     case 3:
                         _i++;
                         return [3 /*break*/, 1];
@@ -230,20 +240,54 @@ var Stream = /** @class */ (function () {
                         this._lastValue = temp;
                         this._transmittedCount++;
                         this._subscriberOnData(temp);
-                        return [2 /*return*/, temp];
+                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 8];
+                        _b = 0, _c = this._middlewaresAfterDispatch;
+                        _d.label = 5;
+                    case 5:
+                        if (!(_b < _c.length)) return [3 /*break*/, 8];
+                        middleware = _c[_b];
+                        return [4 /*yield*/, middleware(temp, this)];
+                    case 6:
+                        temp = _d.sent();
+                        if (temp === const_1.CANCELLED) {
+                            return [2 /*return*/];
+                        }
+                        _d.label = 7;
+                    case 7:
+                        _b++;
+                        return [3 /*break*/, 5];
+                    case 8: return [2 /*return*/, temp];
                 }
             });
         });
     };
+    Stream.prototype._middlewareAdd = function (middleware) {
+        if (this._middlewares === void 0) {
+            this._middlewares = [];
+        }
+        this._middlewares.push(middleware);
+        return middleware;
+    };
+    Stream.prototype._middlewareAfterDispatchAdd = function (middleware) {
+        if (this._middlewaresAfterDispatch === void 0) {
+            this._middlewaresAfterDispatch = [];
+        }
+        this._middlewaresAfterDispatch.push(middleware);
+        return middleware;
+    };
     Stream.prototype._subscriberAdd = function (subscriber) {
         if (false === subscriber.id in this._subscribers) {
+            subscriber = this.onSubscriberAdd(subscriber);
             this._subscribers[subscriber.id] = subscriber;
+            this._subscribersCount++;
         }
         return subscriber;
     };
     Stream.prototype._subscriberRemove = function (subscriber) {
         if (subscriber.id in this._subscribers) {
-            delete this._subscribers[subscriber.unsubscribe().id];
+            subscriber = this.onSubscriberRemove(subscriber).unsubscribe();
+            delete this._subscribers[subscriber.id];
+            this._subscribersCount--;
         }
         return this;
     };
@@ -267,6 +311,12 @@ var Stream = /** @class */ (function () {
             this._subscribers[subscriberId].doError(error);
         }
         return this;
+    };
+    Stream.prototype.onSubscriberAdd = function (subscriber) {
+        return subscriber;
+    };
+    Stream.prototype.onSubscriberRemove = function (subscriber) {
+        return subscriber;
     };
     return Stream;
 }());

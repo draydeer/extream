@@ -36,7 +36,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
+var stream_1 = require("./stream");
 var executor_1 = require("./executor");
+var interval_stream_1 = require("./extra/interval_stream");
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
@@ -74,11 +76,23 @@ var executor_1 = require("./executor");
 //setTimeout(() => {
 //    w.emit("3");
 //}, 3000);
+var s1 = new stream_1.Stream().map(function (data) { return "1"; });
+var s2 = new stream_1.Stream().map(function (data) { return "2"; });
+var s3 = new stream_1.Stream().map(function (data) { return "3"; });
+var s4 = new interval_stream_1.IntervalStream(3, "a");
 var e = new executor_1.Executor(function (agent) { return __awaiter(_this, void 0, void 0, function () {
+    var r;
     return __generator(this, function (_a) {
-        console.log(agent);
-        return [2 /*return*/];
+        switch (_a.label) {
+            case 0: return [4 /*yield*/, agent.race(s1, s2, s3)];
+            case 1:
+                r = _a.sent();
+                console.log(r);
+                return [2 /*return*/];
+        }
     });
-}); });
-e.promise.then(function () { return console.log('ok'); }).catch(function () { return console.log('err'); });
+}); }).pipeToIncoming(s4);
+e.then(function () { return console.log('ok'); }).catch(function () { return console.log('err'); });
+//setTimeout(() => e.complete(), 1000);
+setTimeout(function () { return s2.emit(1); }, 6000);
 setTimeout(function () { }, 1000000);

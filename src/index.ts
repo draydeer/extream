@@ -2,6 +2,7 @@ import {Stream} from "./stream";
 import {WebsocketW3CWebsocketStream} from "./extra/websocket_w3cwebsocket_stream";
 import {Executor} from "./executor";
 import {Agent} from "./agent";
+import {IntervalStream} from "./extra/interval_stream";
 
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
@@ -41,11 +42,20 @@ import {Agent} from "./agent";
 //    w.emit("3");
 //}, 3000);
 
+const s1 = new Stream<any>().map((data: any) => "1");
+const s2 = new Stream<any>().map((data: any) => "2");
+const s3 = new Stream<any>().map((data: any) => "3");
+const s4 = new IntervalStream(3, "a");
 
 const e = new Executor<any>(async (agent: Agent<any>) => {
-    console.log(agent);
-});
+    const r = await agent.race(s1, s2, s3);
 
-e.promise.then(() => console.log('ok')).catch(() => console.log('err'));
+    console.log(r);
+}).pipeToIncoming(s4);
+
+e.then(() => console.log('ok')).catch(() => console.log('err'));
+
+//setTimeout(() => e.complete(), 1000);
+setTimeout(() => s2.emit(1), 6000);
 
 setTimeout(() => {}, 1000000);

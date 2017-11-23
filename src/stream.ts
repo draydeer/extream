@@ -3,20 +3,26 @@ import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
 import {StreamBuffer} from "./stream_buffer";
 import {Subscriber} from "./subscriber";
-import {PrimitiveType} from "./types";
+import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
 
 /**
  * Stream.
  */
 export class Stream<T> implements StreamInterface<T> {
 
-    protected _emitBuffer: StreamBuffer<T>;
+    //protected _emitBuffer: StreamBuffer<T>;
     protected _isPaused: boolean;
     protected _lastValue: T;
-    protected _middlewares: ((data: T, stream?: Stream<T>) => T | Promise<T> | Error)[] = [];
-    protected _subscribeBuffer: StreamBuffer<T>;
+    protected _middlewares: StreamMiddleware<T>[];
+    protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
+    //protected _subscribeBuffer: StreamBuffer<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
+    protected _subscribersCount: number = 0;
     protected _transmittedCount: number = 0;
+
+    public static get COMPLETED(): Error {
+        return COMPLETED;
+    };
 
     public static fromPromise<T>(promise: Promise<T>): StreamInterface<T> {
         const stream: StreamInterface<T> = new Stream<T>();
@@ -42,9 +48,9 @@ export class Stream<T> implements StreamInterface<T> {
         return stream;
     }
 
-    public static get COMPLETED(): Error {
-        return COMPLETED;
-    };
+    public static race<T>(...asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
+        return Stream.merge(...asyncs).first();
+    }
 
     public constructor() {
 
@@ -59,7 +65,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public get subscribersCount(): number {
-        return 0;
+        return this._subscribersCount;
     }
 
     public get transmittedCount(): number {
@@ -90,17 +96,25 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public initEmitBuffer(maxLength: number = 0) {
-        this._emitBuffer = this._emitBuffer || new StreamBuffer(maxLength);
+    public fork(): StreamInterface<T> {
+        let stream: Stream<T> = new Stream<T>();
 
-        return this;
+        this.subscribeStream(stream);
+
+        return stream;
     }
 
-    public initSubscribeBuffer(maxLength: number = 0) {
-        this._subscribeBuffer = this._subscribeBuffer || new StreamBuffer(maxLength);
-
-        return this;
-    }
+    // public initEmitBuffer(maxLength: number = 0) {
+    //     this._emitBuffer = this._emitBuffer || new StreamBuffer(maxLength);
+    //
+    //     return this;
+    // }
+    //
+    // public initSubscribeBuffer(maxLength: number = 0) {
+    //     this._subscribeBuffer = this._subscribeBuffer || new StreamBuffer(maxLength);
+    //
+    //     return this;
+    // }
 
     public pause(): this {
         this._isPaused = true;
@@ -114,16 +128,24 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public subscribe(
-        onData?: (data: T) => any,
-        onError?: (error: any) => any,
-        onComplete?: () => any
-    ): SubscriberInterface<T> {
+    public subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T> {
         return this._subscriberAdd(new Subscriber<T>(this, onData, onError, onComplete));
     }
 
+    public subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T> {
+        return this._subscriberAdd(new Subscriber<T>(this, void 0, void 0, onComplete));
+    }
+
     public subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T> {
-        return this.subscribe(stream.emit.bind(stream), stream.error.bind(stream), stream.complete.bind(stream));
+        const subscription = this.subscribe(
+            stream.emit.bind(stream),
+            stream.error.bind(stream),
+            stream.complete.bind(stream)
+        );
+
+        stream.subscribeOnComplete(subscription.unsubscribe.bind(subscription));
+
+        return subscription;
     }
 
     public unsubscribe(subscriber: SubscriberInterface<T>): this {
@@ -133,8 +155,16 @@ export class Stream<T> implements StreamInterface<T> {
     // middlewares
 
     public delay(milliseconds: number): this {
-        this._middlewares.push(
+        this._middlewareAdd(
             (data) => new Promise<T>((resolve) => setTimeout(() => resolve(data), milliseconds))
+        );
+
+        return this;
+    }
+
+    public dispatch(): this {
+        this._middlewareAdd(
+            (data, stream) => this._subscriberOnData(data) && data
         );
 
         return this;
@@ -150,8 +180,8 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public filter(middleware: T|((data: T, stream?: Stream<T>) => boolean)): this {
-        this._middlewares.push(
+    public filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this {
+        this._middlewareAdd(
             middleware instanceof Function
                 ? (data, stream) => middleware(data, stream) ? data : CANCELLED
                 : (data, stream) => middleware === data ? data : CANCELLED
@@ -160,32 +190,16 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public first(middleware: ((data: T, stream?: Stream<T>) => T | Promise<T>)): this {
-        let isFirst: boolean = true;
-
-        this._middlewares.push((data: T, stream?: Stream<T>) => {
-            if (isFirst) {
-                isFirst = false;
-
-                return middleware(data, stream);
-            } else {
-                return data;
-            }
-        });
+    public first(): this {
+        this._middlewareAdd(
+            (data, stream) => this._subscriberOnData(data).complete() && data
+        );
 
         return this;
     }
 
-    public fork(): StreamInterface<T> {
-        let stream: Stream<T> = new Stream<T>();
-
-        this.subscribeStream(stream);
-
-        return stream;
-    }
-
-    public map(middleware: (data: T, stream?: Stream<T>) => T | Promise<T>): this {
-        this._middlewares.push(
+    public map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
+        this._middlewareAdd(
             middleware
         );
 
@@ -211,8 +225,6 @@ export class Stream<T> implements StreamInterface<T> {
     protected _complete(): this {
         this._subscriberOnComplete();
 
-        this._emitBuffer = this._lastValue = this._subscribeBuffer = void 0;
-
         return this;
     }
 
@@ -223,11 +235,13 @@ export class Stream<T> implements StreamInterface<T> {
 
         let temp: T | Promise<T> | Error = data;
 
-        for (const middleware of this._middlewares) {
-            temp = await middleware(<T>temp, this);
+        if (this._middlewares) {
+            for (const middleware of this._middlewares) {
+                temp = await middleware(<T>temp, this);
 
-            if (temp === CANCELLED) {
-                return;
+                if (temp === CANCELLED) {
+                    return;
+                }
             }
         }
 
@@ -237,12 +251,46 @@ export class Stream<T> implements StreamInterface<T> {
 
         this._subscriberOnData(<T>temp);
 
+        if (this._middlewaresAfterDispatch) {
+            for (const middleware of this._middlewaresAfterDispatch) {
+                temp = await middleware(<T>temp, this);
+
+                if (temp === CANCELLED) {
+                    return;
+                }
+            }
+        }
+
         return temp;
+    }
+
+    protected _middlewareAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T> {
+        if (this._middlewares === void 0) {
+            this._middlewares = [];
+        }
+
+        this._middlewares.push(middleware);
+
+        return middleware;
+    }
+
+    protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T> {
+        if (this._middlewaresAfterDispatch === void 0) {
+            this._middlewaresAfterDispatch = [];
+        }
+
+        this._middlewaresAfterDispatch.push(middleware);
+
+        return middleware;
     }
 
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
         if (false === subscriber.id in this._subscribers) {
+            subscriber = this.onSubscriberAdd(subscriber);
+
             this._subscribers[subscriber.id] = subscriber;
+
+            this._subscribersCount ++;
         }
 
         return subscriber;
@@ -250,7 +298,11 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this {
         if (subscriber.id in this._subscribers) {
-            delete this._subscribers[subscriber.unsubscribe().id];
+            subscriber = this.onSubscriberRemove(subscriber).unsubscribe();
+
+            delete this._subscribers[subscriber.id];
+
+            this._subscribersCount --;
         }
 
         return this;
@@ -278,6 +330,14 @@ export class Stream<T> implements StreamInterface<T> {
         }
 
         return this;
+    }
+
+    protected onSubscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
+        return subscriber;
+    }
+
+    protected onSubscriberRemove(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
+        return subscriber;
     }
 
 }

@@ -16,4 +16,8 @@ export class QueueStream<T> extends Stream<T> {
         return this;
     }
 
+    protected _emitQueue() {
+
+    }
+
 }
