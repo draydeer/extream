@@ -14,16 +14,19 @@ var stream_1 = require("../stream");
 var IntervalStream = /** @class */ (function (_super) {
     __extends(IntervalStream, _super);
     function IntervalStream(seconds) {
-        var args = [];
-        for (var _i = 1; _i < arguments.length; _i++) {
-            args[_i - 1] = arguments[_i];
-        }
         var _this = _super.call(this) || this;
-        _this._interval = setInterval.apply(void 0, [_this.emit.bind(_this), seconds * 1000].concat(args));
+        _this._ticks = 0;
+        _this._interval = setInterval(function () { return _super.prototype.emit.call(_this, _this._ticks++); }, seconds * 1000);
         return _this;
     }
+    Object.defineProperty(IntervalStream.prototype, "ticks", {
+        get: function () {
+            return this._ticks;
+        },
+        enumerable: true,
+        configurable: true
+    });
     IntervalStream.prototype.complete = function () {
-        console.log('iterval!');
         clearInterval(this._interval);
         return _super.prototype.complete.call(this);
     };

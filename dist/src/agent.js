@@ -18,7 +18,7 @@ var Agent = /** @class */ (function () {
             asyncs[_i] = arguments[_i];
         }
         asyncs.push(this._executor.incoming);
-        return stream_1.Stream.merge.apply(stream_1.Stream, asyncs).first().toPromise();
+        return stream_1.Stream.merge.apply(stream_1.Stream, asyncs).first();
     };
     return Agent;
 }());

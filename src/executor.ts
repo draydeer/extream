@@ -43,10 +43,6 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
         return this._promise;
     }
 
-    public catch(onError?: OnError): Promise<T> {
-        return this.promise.catch(onError);
-    }
-
     public complete(): this {
         this._incomingStream.error(COMPLETED);
 
@@ -65,14 +61,14 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
         return this;
     }
 
-    public pipeToIncoming(...streams: StreamInterface<T>[]): this {
-        streams.forEach((stream) => stream.subscribeStream(this._incomingStream));
+    public pipeOutgoingTo(...streams: StreamInterface<T>[]): this {
+        streams.forEach((stream) => this.subscribeStream(stream));
 
         return this;
     }
 
-    public pipeOutgoingTo(...streams: StreamInterface<T>[]): this {
-        streams.forEach((stream) => this.subscribeStream(stream));
+    public pipeToIncoming(...streams: StreamInterface<T>[]): this {
+        streams.forEach((stream) => stream.subscribeStream(this._incomingStream));
 
         return this;
     }
@@ -101,8 +97,14 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
         return this;
     }
 
-    public then(onFulfilled?: OnData<T>): Promise<T> {
-        return this.promise.then(onFulfilled);
+    // promise like
+
+    public catch(onrejected?: OnError): Promise<T> {
+        return this.promise.catch(onrejected);
+    }
+
+    public then(onfulfilled?: OnData<T>): Promise<T> {
+        return this.promise.then(onfulfilled);
     }
 
 }

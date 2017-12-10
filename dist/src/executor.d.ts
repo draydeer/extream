@@ -14,12 +14,12 @@ export declare class Executor<T> extends Stream<T> implements Promise<T> {
     readonly isRunning: boolean;
     readonly result: T;
     readonly promise: Promise<T>;
-    catch(onError?: OnError): Promise<T>;
     complete(): this;
     emit(data: T): this;
     error(error: any): this;
-    pipeToIncoming(...streams: StreamInterface<T>[]): this;
     pipeOutgoingTo(...streams: StreamInterface<T>[]): this;
+    pipeToIncoming(...streams: StreamInterface<T>[]): this;
     run(): this;
-    then(onFulfilled?: OnData<T>): Promise<T>;
+    catch(onrejected?: OnError): Promise<T>;
+    then(onfulfilled?: OnData<T>): Promise<T>;
 }

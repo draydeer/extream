@@ -76,22 +76,25 @@ var interval_stream_1 = require("./extra/interval_stream");
 //setTimeout(() => {
 //    w.emit("3");
 //}, 3000);
-var s1 = new stream_1.Stream().map(function (data) { return "1"; });
-var s2 = new stream_1.Stream().map(function (data) { return "2"; });
-var s3 = new stream_1.Stream().map(function (data) { return "3"; });
-var s4 = new interval_stream_1.IntervalStream(3, "a");
+var s1 = new stream_1.Stream().map(function (data) { return "11"; });
+var s2 = new stream_1.Stream().map(function (data) { return "22"; });
+var s3 = new stream_1.Stream().map(function (data) { return "33"; });
+var s4 = new interval_stream_1.IntervalStream(0.5).map(function () { return "b"; });
+var s5 = new stream_1.Stream().map(function (data) { return console.log(data) && "5"; });
 var e = new executor_1.Executor(function (agent) { return __awaiter(_this, void 0, void 0, function () {
     var r;
     return __generator(this, function (_a) {
         switch (_a.label) {
-            case 0: return [4 /*yield*/, agent.race(s1, s2, s3)];
+            case 0:
+                agent.emit("start");
+                return [4 /*yield*/, agent.race(s1, s2, s3).filter(function (a) { return a !== "a"; }).toPromise()];
             case 1:
                 r = _a.sent();
-                console.log(r);
-                return [2 /*return*/];
+                agent.emit("stop");
+                return [2 /*return*/, r];
         }
     });
-}); }).pipeToIncoming(s4);
+}); }).pipeToIncoming(s4).pipeOutgoingTo(s5);
 e.then(function () { return console.log('ok'); }).catch(function () { return console.log('err'); });
 //setTimeout(() => e.complete(), 1000);
 setTimeout(function () { return s2.emit(1); }, 6000);

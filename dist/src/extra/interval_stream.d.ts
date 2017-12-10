@@ -1,6 +1,8 @@
 import { Stream } from "../stream";
-export declare class IntervalStream<T> extends Stream<T> {
+export declare class IntervalStream<T> extends Stream<number | T> {
     protected _interval: any;
-    constructor(seconds: number, ...args: any[]);
+    protected _ticks: number;
+    constructor(seconds: number);
+    readonly ticks: number;
     complete(): this;
 }

@@ -72,13 +72,6 @@ var Stream = /** @class */ (function () {
         });
         return stream;
     };
-    Stream.race = function () {
-        var asyncs = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            asyncs[_i] = arguments[_i];
-        }
-        return Stream.merge.apply(Stream, asyncs).first();
-    };
     Object.defineProperty(Stream.prototype, "isPaused", {
         get: function () {
             return this._isPaused;
@@ -168,15 +161,17 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype.dispatch = function () {
         var _this = this;
-        this._middlewareAdd(function (data, stream) { return _this._subscriberOnData(data) && data; });
+        this._middlewareAdd(function (data, stream) {
+            _this._subscriberOnData(data);
+            return data;
+        });
         return this;
     };
     Stream.prototype.exec = function (middleware) {
-        //this._middlewares.push(
-        //    middleware instanceof Promise
-        //        ? (data, stream) => middleware
-        //        :
-        //);
+        this._middlewareAdd(function (data, stream) {
+            var result = middleware(data, stream);
+            return result !== void 0 ? result : data;
+        });
         return this;
     };
     Stream.prototype.filter = function (middleware) {
@@ -187,23 +182,30 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype.first = function () {
         var _this = this;
-        this._middlewareAdd(function (data, stream) { return _this._subscriberOnData(data).complete() && data; });
+        this._middlewareAfterDispatchAdd(function (data, stream) {
+            _this._subscriberOnData(data).complete();
+            return data;
+        });
         return this;
     };
     Stream.prototype.map = function (middleware) {
         this._middlewareAdd(middleware);
         return this;
     };
-    Stream.prototype.toPromise = function () {
-        var _this = this;
-        return new Promise(function (resolve, reject) {
-            _this.subscribe(resolve, reject, function () { return reject(const_1.COMPLETED); }).once();
-        });
+    Stream.prototype.skip = function (count) {
+        this._middlewareAdd(function (data, stream) { return count-- > 0 ? const_1.CANCELLED : data; });
+        return this;
     };
     Stream.prototype.toOnCompletePromise = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
             _this.subscribe(void 0, reject, function () { return resolve(_this._lastValue); });
+        });
+    };
+    Stream.prototype.toPromise = function () {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.subscribe(resolve, reject, function () { return reject(const_1.COMPLETED); }).once();
         });
     };
     Stream.prototype._complete = function () {

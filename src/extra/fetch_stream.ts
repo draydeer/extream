@@ -6,7 +6,7 @@ export class FetchStream<T> extends Stream<T> {
     protected _queue: T[] = [];
 
     public emit(data: T): this {
-        throw new Error("Emitting is not allowed.");
+        return this;
     }
 
     public delete(url: string): StreamInterface<T> {

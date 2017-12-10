@@ -54,9 +54,6 @@ var Executor = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
-    Executor.prototype.catch = function (onError) {
-        return this.promise.catch(onError);
-    };
     Executor.prototype.complete = function () {
         this._incomingStream.error(const_1.COMPLETED);
         return _super.prototype.complete.call(this);
@@ -69,15 +66,6 @@ var Executor = /** @class */ (function (_super) {
         this._incomingStream.error(error);
         return this;
     };
-    Executor.prototype.pipeToIncoming = function () {
-        var _this = this;
-        var streams = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            streams[_i] = arguments[_i];
-        }
-        streams.forEach(function (stream) { return stream.subscribeStream(_this._incomingStream); });
-        return this;
-    };
     Executor.prototype.pipeOutgoingTo = function () {
         var _this = this;
         var streams = [];
@@ -85,6 +73,15 @@ var Executor = /** @class */ (function (_super) {
             streams[_i] = arguments[_i];
         }
         streams.forEach(function (stream) { return _this.subscribeStream(stream); });
+        return this;
+    };
+    Executor.prototype.pipeToIncoming = function () {
+        var _this = this;
+        var streams = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            streams[_i] = arguments[_i];
+        }
+        streams.forEach(function (stream) { return stream.subscribeStream(_this._incomingStream); });
         return this;
     };
     Executor.prototype.run = function () {
@@ -105,8 +102,12 @@ var Executor = /** @class */ (function (_super) {
         });
         return this;
     };
-    Executor.prototype.then = function (onFulfilled) {
-        return this.promise.then(onFulfilled);
+    // promise like
+    Executor.prototype.catch = function (onrejected) {
+        return this.promise.catch(onrejected);
+    };
+    Executor.prototype.then = function (onfulfilled) {
+        return this.promise.then(onfulfilled);
     };
     return Executor;
 }(stream_1.Stream));

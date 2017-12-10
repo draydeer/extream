@@ -17,7 +17,6 @@ export declare class Stream<T> implements StreamInterface<T> {
     static readonly COMPLETED: Error;
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
-    static race<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
     readonly isPaused: boolean;
     readonly lastValue: T;
@@ -36,12 +35,13 @@ export declare class Stream<T> implements StreamInterface<T> {
     unsubscribe(subscriber: SubscriberInterface<T>): this;
     delay(milliseconds: number): this;
     dispatch(): this;
-    exec(middleware: T | Promise<T> | ((data: T, stream?: Stream<T>) => T | Promise<T>)): this;
+    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;
     map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
-    toPromise(): Promise<T>;
+    skip(count: number): this;
     toOnCompletePromise(): Promise<T>;
+    toPromise(): Promise<T>;
     protected _complete(): this;
     protected _emit(data: T): Promise<Error | T>;
     protected _middlewareAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;

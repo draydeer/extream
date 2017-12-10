@@ -20,10 +20,10 @@ export class Agent<T> {
         return this;
     }
 
-    public race(...asyncs: (Promise<T>|StreamInterface<T>)[]): Promise<T> {
+    public race(...asyncs: (Promise<T>|StreamInterface<T>)[]): StreamInterface<T> {
         asyncs.push(this._executor.incoming);
 
-        return Stream.merge(...asyncs).first().toPromise();
+        return Stream.merge(...asyncs).first();
     }
 
 }

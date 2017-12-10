@@ -42,16 +42,21 @@ import {IntervalStream} from "./extra/interval_stream";
 //    w.emit("3");
 //}, 3000);
 
-const s1 = new Stream<any>().map((data: any) => "1");
-const s2 = new Stream<any>().map((data: any) => "2");
-const s3 = new Stream<any>().map((data: any) => "3");
-const s4 = new IntervalStream(3, "a");
+const s1 = new Stream<any>().map((data: any) => "11");
+const s2 = new Stream<any>().map((data: any) => "22");
+const s3 = new Stream<any>().map((data: any) => "33");
+const s4 = new IntervalStream<any>(0.5).map(() => "b");
+const s5 = new Stream<any>().map((data: any) => console.log(data) && "5");
 
 const e = new Executor<any>(async (agent: Agent<any>) => {
-    const r = await agent.race(s1, s2, s3);
+    agent.emit("start");
 
-    console.log(r);
-}).pipeToIncoming(s4);
+    const r = await agent.race(s1, s2, s3).filter((a) => a !== "a").toPromise();
+
+    agent.emit("stop");
+
+    return r;
+}).pipeToIncoming(s4).pipeOutgoingTo(s5);
 
 e.then(() => console.log('ok')).catch(() => console.log('err'));
 
