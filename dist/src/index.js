@@ -36,9 +36,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
-var stream_1 = require("./stream");
-var executor_1 = require("./executor");
-var interval_stream_1 = require("./extra/interval_stream");
+var stream_buffer_1 = require("./stream_buffer");
+var fetch_stream_1 = require("./extra/fetch_stream");
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
@@ -76,26 +75,17 @@ var interval_stream_1 = require("./extra/interval_stream");
 //setTimeout(() => {
 //    w.emit("3");
 //}, 3000);
-var s1 = new stream_1.Stream().map(function (data) { return "11"; });
-var s2 = new stream_1.Stream().map(function (data) { return "22"; });
-var s3 = new stream_1.Stream().map(function (data) { return "33"; });
-var s4 = new interval_stream_1.IntervalStream(0.5).map(function () { return "b"; });
-var s5 = new stream_1.Stream().map(function (data) { return console.log(data) && "5"; });
-var e = new executor_1.Executor(function (agent) { return __awaiter(_this, void 0, void 0, function () {
-    var r;
+(function () { return __awaiter(_this, void 0, void 0, function () {
+    var buf, fs;
     return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                agent.emit("start");
-                return [4 /*yield*/, agent.race(s1, s2, s3).filter(function (a) { return a !== "a"; }).toPromise()];
-            case 1:
-                r = _a.sent();
-                agent.emit("stop");
-                return [2 /*return*/, r];
-        }
+        buf = new stream_buffer_1.StreamBuffer(3);
+        fs = fetch_stream_1.FetchStream.post('https://google.com', 'test')
+            .filter(function (data) {
+            return true;
+        })
+            .extractText()
+            .exec(function (data) { return data.substr(0, 10); })
+            .subscribe(function (data) { return console.log(data); }, function (err) { return console.error(err); });
+        return [2 /*return*/];
     });
-}); }).pipeToIncoming(s4).pipeOutgoingTo(s5);
-e.then(function () { return console.log('ok'); }).catch(function () { return console.log('err'); });
-//setTimeout(() => e.complete(), 1000);
-setTimeout(function () { return s2.emit(1); }, 6000);
-setTimeout(function () { }, 1000000);
+}); })();

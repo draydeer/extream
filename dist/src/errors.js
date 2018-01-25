@@ -10,6 +10,22 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
+var BufferIsEmptyError = /** @class */ (function (_super) {
+    __extends(BufferIsEmptyError, _super);
+    function BufferIsEmptyError() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return BufferIsEmptyError;
+}(Error));
+exports.BufferIsEmptyError = BufferIsEmptyError;
+var BufferIsFullError = /** @class */ (function (_super) {
+    __extends(BufferIsFullError, _super);
+    function BufferIsFullError() {
+        return _super !== null && _super.apply(this, arguments) || this;
+    }
+    return BufferIsFullError;
+}(Error));
+exports.BufferIsFullError = BufferIsFullError;
 var Cancelled = /** @class */ (function (_super) {
     __extends(Cancelled, _super);
     function Cancelled() {

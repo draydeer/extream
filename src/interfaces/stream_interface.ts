@@ -7,7 +7,8 @@ export interface StreamInterface<T> {
     emit(data: T): this;
     emitAndComplete(data: T): this;
     error(error: any): this;
-    filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this;
+    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): StreamInterface<T>;
+    filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): StreamInterface<T>;
     first(): StreamInterface<T>;
     fork(): StreamInterface<T>;
     pause(): this;

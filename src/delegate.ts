@@ -2,7 +2,7 @@ import {Executor} from "./executor";
 import {Stream} from "./stream";
 import {StreamInterface} from "./interfaces/stream_interface";
 
-export class Agent<T> {
+export class Delegate<T> {
 
     protected _executor: Executor<T>;
 

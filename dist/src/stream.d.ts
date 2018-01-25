@@ -1,10 +1,15 @@
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
+import { StreamBuffer } from "./stream_buffer";
 import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
 /**
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
+    protected _emitPromise: Promise<T>;
+    protected _isComplex: boolean;
+    protected _postbuffer: StreamBuffer<T>;
+    protected _prebuffer: StreamBuffer<T>;
     protected _isPaused: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
@@ -23,28 +28,33 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly subscribersCount: number;
     readonly transmittedCount: number;
     complete(): this;
+    complex(): this;
     emit(data: T): this;
     emitAndComplete(data: T): this;
     error(error: any): this;
     fork(): StreamInterface<T>;
     pause(): this;
+    postbuffer(size?: number): this;
+    prebuffer(size?: number): this;
     resume(): this;
+    simple(): this;
     subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
-    delay(milliseconds: number): this;
-    dispatch(): this;
-    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
-    filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
-    first(): this;
-    map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
-    skip(count: number): this;
+    delay(milliseconds: number): StreamInterface<T>;
+    dispatch(): StreamInterface<T>;
+    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): StreamInterface<T>;
+    filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): StreamInterface<T>;
+    first(): StreamInterface<T>;
+    map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): StreamInterface<T>;
+    skip(count: number): StreamInterface<T>;
     toOnCompletePromise(): Promise<T>;
     toPromise(): Promise<T>;
     protected _complete(): this;
-    protected _emit(data: T): Promise<Error | T>;
-    protected _middlewareAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
+    protected _emit(data: T): Promise<T>;
+    protected _emitLoop(prebuffer: any): Promise<T>;
+    protected _middlewareAdd(middleware: StreamMiddleware<T>): Stream<T>;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this;

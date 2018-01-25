@@ -1,4 +1,4 @@
-import {Agent} from "./agent";
+import {Delegate} from "./delegate";
 import {CANCELLED, COMPLETED} from "./const";
 import {Stream} from "./stream";
 import {StreamInterface} from "./interfaces/stream_interface";
@@ -7,18 +7,18 @@ import {OnData, OnError} from "./types";
 
 export class Executor<T> extends Stream<T> implements Promise<T> {
 
-    protected _agent: Agent<T>;
-    protected _async: (agent: Agent<T>) => Promise<T>;
+    protected _async: (agent: Delegate<T>) => Promise<T>;
+    protected _delegate: Delegate<T>;
     protected _error: any;
     protected _incomingStream: StreamInterface<T> = new Stream<any>();
     protected _promise: Promise<T>;
     protected _result: T;
 
-    constructor(async: (agent: Agent<T>) => Promise<T>) {
+    constructor(async: (delegate: Delegate<T>) => Promise<T>) {
         super();
 
-        this._agent = new Agent<T>(this);
         this._async = async;
+        this._delegate = new Delegate<T>(this);
     }
 
     public get incoming(): StreamInterface<T> {
@@ -78,7 +78,7 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
             return this;
         }
 
-        this._promise = this._async(this._agent).then<T>((result: T) => {
+        this._promise = this._async(this._delegate).then<T>((result: T) => {
             this._promise = void 0;
             this._result = result;
 

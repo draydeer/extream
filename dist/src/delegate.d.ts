@@ -1,6 +1,6 @@
 import { Executor } from "./executor";
 import { StreamInterface } from "./interfaces/stream_interface";
-export declare class Agent<T> {
+export declare class Delegate<T> {
     protected _executor: Executor<T>;
     constructor(executor: Executor<T>);
     emit(data: T): this;

@@ -6,7 +6,6 @@ export interface StreamInterface<T> {
     emit(data: T): this;
     emitAndComplete(data: T): this;
     error(error: any): this;
-    filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): StreamInterface<T>;
     fork(): StreamInterface<T>;
     pause(): this;

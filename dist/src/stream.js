@@ -36,13 +36,14 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var const_1 = require("./const");
+var stream_buffer_1 = require("./stream_buffer");
 var subscriber_1 = require("./subscriber");
+var singleElementPrebuffer = [];
 /**
  * Stream.
  */
 var Stream = /** @class */ (function () {
     function Stream() {
-        //protected _subscribeBuffer: StreamBuffer<T>;
         this._subscribers = {};
         this._subscribersCount = 0;
         this._transmittedCount = 0;
@@ -104,6 +105,10 @@ var Stream = /** @class */ (function () {
         this._complete();
         return this;
     };
+    Stream.prototype.complex = function () {
+        this._isComplex = true;
+        return this;
+    };
     Stream.prototype.emit = function (data) {
         this._emit(data);
         return this;
@@ -121,23 +126,26 @@ var Stream = /** @class */ (function () {
         this.subscribeStream(stream);
         return stream;
     };
-    // public initEmitBuffer(maxLength: number = 0) {
-    //     this._emitBuffer = this._emitBuffer || new StreamBuffer(maxLength);
-    //
-    //     return this;
-    // }
-    //
-    // public initSubscribeBuffer(maxLength: number = 0) {
-    //     this._subscribeBuffer = this._subscribeBuffer || new StreamBuffer(maxLength);
-    //
-    //     return this;
-    // }
     Stream.prototype.pause = function () {
         this._isPaused = true;
         return this;
     };
+    Stream.prototype.postbuffer = function (size) {
+        if (size === void 0) { size = 10; }
+        this._postbuffer = new stream_buffer_1.StreamBuffer(size);
+        return this;
+    };
+    Stream.prototype.prebuffer = function (size) {
+        if (size === void 0) { size = 10; }
+        this._prebuffer = new stream_buffer_1.StreamBuffer(size);
+        return this;
+    };
     Stream.prototype.resume = function () {
         this._isPaused = false;
+        return this;
+    };
+    Stream.prototype.simple = function () {
+        this._isComplex = false;
         return this;
     };
     Stream.prototype.subscribe = function (onData, onError, onComplete) {
@@ -156,29 +164,25 @@ var Stream = /** @class */ (function () {
     };
     // middlewares
     Stream.prototype.delay = function (milliseconds) {
-        this._middlewareAdd(function (data) { return new Promise(function (resolve) { return setTimeout(function () { return resolve(data); }, milliseconds); }); });
-        return this;
+        return this._middlewareAdd(function (data) { return new Promise(function (resolve) { return setTimeout(function () { return resolve(data); }, milliseconds); }); });
     };
     Stream.prototype.dispatch = function () {
         var _this = this;
-        this._middlewareAdd(function (data, stream) {
+        return this._middlewareAdd(function (data, stream) {
             _this._subscriberOnData(data);
             return data;
         });
-        return this;
     };
     Stream.prototype.exec = function (middleware) {
-        this._middlewareAdd(function (data, stream) {
+        return this._middlewareAdd(function (data, stream) {
             var result = middleware(data, stream);
             return result !== void 0 ? result : data;
         });
-        return this;
     };
     Stream.prototype.filter = function (middleware) {
-        this._middlewareAdd(middleware instanceof Function
+        return this._middlewareAdd(middleware instanceof Function
             ? function (data, stream) { return middleware(data, stream) ? data : const_1.CANCELLED; }
             : function (data, stream) { return middleware === data ? data : const_1.CANCELLED; });
-        return this;
     };
     Stream.prototype.first = function () {
         var _this = this;
@@ -189,12 +193,10 @@ var Stream = /** @class */ (function () {
         return this;
     };
     Stream.prototype.map = function (middleware) {
-        this._middlewareAdd(middleware);
-        return this;
+        return this._middlewareAdd(middleware);
     };
     Stream.prototype.skip = function (count) {
-        this._middlewareAdd(function (data, stream) { return count-- > 0 ? const_1.CANCELLED : data; });
-        return this;
+        return this._middlewareAdd(function (data, stream) { return count-- > 0 ? const_1.CANCELLED : data; });
     };
     Stream.prototype.toOnCompletePromise = function () {
         var _this = this;
@@ -213,52 +215,83 @@ var Stream = /** @class */ (function () {
         return this;
     };
     Stream.prototype._emit = function (data) {
+        if (this._prebuffer) {
+            this._prebuffer.add(data);
+            if (!this._emitPromise) {
+                this._emitPromise = this._emitLoop(this._prebuffer);
+            }
+        }
+        else {
+            singleElementPrebuffer[0] = data;
+            if (!this._emitPromise) {
+                this._emitPromise = this._emitLoop(singleElementPrebuffer);
+            }
+        }
+        return this._emitPromise;
+    };
+    Stream.prototype._emitLoop = function (prebuffer) {
         return __awaiter(this, void 0, void 0, function () {
-            var temp, _i, _a, middleware, _b, _c, middleware;
-            return __generator(this, function (_d) {
-                switch (_d.label) {
+            var temp, _i, prebuffer_1, data, cancelled, _a, _b, middleware, _c, _d, middleware;
+            return __generator(this, function (_e) {
+                switch (_e.label) {
                     case 0:
-                        if (this._isPaused) {
-                            return [2 /*return*/];
-                        }
-                        temp = data;
-                        if (!this._middlewares) return [3 /*break*/, 4];
-                        _i = 0, _a = this._middlewares;
-                        _d.label = 1;
+                        _i = 0, prebuffer_1 = prebuffer;
+                        _e.label = 1;
                     case 1:
-                        if (!(_i < _a.length)) return [3 /*break*/, 4];
-                        middleware = _a[_i];
-                        return [4 /*yield*/, middleware(temp, this)];
-                    case 2:
-                        temp = _d.sent();
-                        if (temp === const_1.CANCELLED) {
-                            return [2 /*return*/];
+                        if (!(_i < prebuffer_1.length)) return [3 /*break*/, 10];
+                        data = prebuffer_1[_i];
+                        temp = data;
+                        if (this._isPaused) {
+                            return [3 /*break*/, 10];
                         }
-                        _d.label = 3;
+                        cancelled = false;
+                        if (!this._middlewares) return [3 /*break*/, 5];
+                        _a = 0, _b = this._middlewares;
+                        _e.label = 2;
+                    case 2:
+                        if (!(_a < _b.length)) return [3 /*break*/, 5];
+                        middleware = _b[_a];
+                        return [4 /*yield*/, middleware(temp, this)];
                     case 3:
-                        _i++;
-                        return [3 /*break*/, 1];
+                        temp = _e.sent();
+                        if (temp === const_1.CANCELLED) {
+                            cancelled = true;
+                            return [3 /*break*/, 5];
+                        }
+                        _e.label = 4;
                     case 4:
+                        _a++;
+                        return [3 /*break*/, 2];
+                    case 5:
+                        if (cancelled) {
+                            return [3 /*break*/, 9];
+                        }
                         this._lastValue = temp;
                         this._transmittedCount++;
                         this._subscriberOnData(temp);
-                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 8];
-                        _b = 0, _c = this._middlewaresAfterDispatch;
-                        _d.label = 5;
-                    case 5:
-                        if (!(_b < _c.length)) return [3 /*break*/, 8];
-                        middleware = _c[_b];
-                        return [4 /*yield*/, middleware(temp, this)];
+                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 9];
+                        _c = 0, _d = this._middlewaresAfterDispatch;
+                        _e.label = 6;
                     case 6:
-                        temp = _d.sent();
-                        if (temp === const_1.CANCELLED) {
-                            return [2 /*return*/];
-                        }
-                        _d.label = 7;
+                        if (!(_c < _d.length)) return [3 /*break*/, 9];
+                        middleware = _d[_c];
+                        return [4 /*yield*/, middleware(temp, this)];
                     case 7:
-                        _b++;
-                        return [3 /*break*/, 5];
-                    case 8: return [2 /*return*/, temp];
+                        temp = _e.sent();
+                        if (temp === const_1.CANCELLED) {
+                            cancelled = true;
+                            return [3 /*break*/, 9];
+                        }
+                        _e.label = 8;
+                    case 8:
+                        _c++;
+                        return [3 /*break*/, 6];
+                    case 9:
+                        _i++;
+                        return [3 /*break*/, 1];
+                    case 10:
+                        this._emitPromise = null;
+                        return [2 /*return*/, temp];
                 }
             });
         });
@@ -268,7 +301,12 @@ var Stream = /** @class */ (function () {
             this._middlewares = [];
         }
         this._middlewares.push(middleware);
-        return middleware;
+        if (this._isComplex) {
+            var stream = new this.constructor();
+            this.subscribeStream(stream);
+            return stream;
+        }
+        return this;
     };
     Stream.prototype._middlewareAfterDispatchAdd = function (middleware) {
         if (this._middlewaresAfterDispatch === void 0) {

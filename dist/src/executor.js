@@ -10,7 +10,7 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var agent_1 = require("./agent");
+var delegate_1 = require("./delegate");
 var const_1 = require("./const");
 var stream_1 = require("./stream");
 var Executor = /** @class */ (function (_super) {
@@ -18,8 +18,8 @@ var Executor = /** @class */ (function (_super) {
     function Executor(async) {
         var _this = _super.call(this) || this;
         _this._incomingStream = new stream_1.Stream();
-        _this._agent = new agent_1.Agent(_this);
         _this._async = async;
+        _this._delegate = new delegate_1.Delegate(_this);
         return _this;
     }
     Object.defineProperty(Executor.prototype, "incoming", {
@@ -89,7 +89,7 @@ var Executor = /** @class */ (function (_super) {
         if (this._promise) {
             return this;
         }
-        this._promise = this._async(this._agent).then(function (result) {
+        this._promise = this._async(this._delegate).then(function (result) {
             _this._promise = void 0;
             _this._result = result;
             _super.prototype.emit.call(_this, result);
