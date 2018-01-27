@@ -73,6 +73,13 @@ var Stream = /** @class */ (function () {
         });
         return stream;
     };
+    Object.defineProperty(Stream.prototype, "clone", {
+        get: function () {
+            return new Stream();
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Stream.prototype, "isPaused", {
         get: function () {
             return this._isPaused;
@@ -83,6 +90,13 @@ var Stream = /** @class */ (function () {
     Object.defineProperty(Stream.prototype, "lastValue", {
         get: function () {
             return this._lastValue;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Stream.prototype, "root", {
+        get: function () {
+            return this._root || this;
         },
         enumerable: true,
         configurable: true
@@ -101,6 +115,12 @@ var Stream = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Stream.prototype.setRoot = function (stream) {
+        if (stream !== this) {
+            this._root = stream;
+        }
+        return this;
+    };
     Stream.prototype.complete = function () {
         this._complete();
         return this;
@@ -122,9 +142,9 @@ var Stream = /** @class */ (function () {
         return this;
     };
     Stream.prototype.fork = function () {
-        var stream = new Stream();
+        var stream = this.clone;
         this.subscribeStream(stream);
-        return stream;
+        return stream.setRoot(this.root);
     };
     Stream.prototype.pause = function () {
         this._isPaused = true;
@@ -163,12 +183,18 @@ var Stream = /** @class */ (function () {
         return this._subscriberRemove(subscriber);
     };
     // middlewares
+    Stream.prototype.debug = function (callback) {
+        return this._middlewareAdd(function (data) {
+            callback(data);
+            return data;
+        });
+    };
     Stream.prototype.delay = function (milliseconds) {
         return this._middlewareAdd(function (data) { return new Promise(function (resolve) { return setTimeout(function () { return resolve(data); }, milliseconds); }); });
     };
     Stream.prototype.dispatch = function () {
         var _this = this;
-        return this._middlewareAdd(function (data, stream) {
+        return this._middlewareAdd(function (data) {
             _this._subscriberOnData(data);
             return data;
         });
@@ -186,8 +212,8 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype.first = function () {
         var _this = this;
-        this._middlewareAfterDispatchAdd(function (data, stream) {
-            _this._subscriberOnData(data).complete();
+        this._middlewareAfterDispatchAdd(function (data) {
+            _this.complete();
             return data;
         });
         return this;
@@ -195,13 +221,37 @@ var Stream = /** @class */ (function () {
     Stream.prototype.map = function (middleware) {
         return this._middlewareAdd(middleware);
     };
+    Stream.prototype.select = function (selector, streams) {
+        return this._middlewareAdd(function (data) {
+            var index = selector(data);
+            if (index in streams) {
+                return streams[index].emit(data).toPromise();
+            }
+            throw new Error("\"select\" middleware got invalid index from selector: " + index);
+        });
+    };
     Stream.prototype.skip = function (count) {
         return this._middlewareAdd(function (data, stream) { return count-- > 0 ? const_1.CANCELLED : data; });
     };
-    Stream.prototype.toOnCompletePromise = function () {
+    Stream.prototype.waitFor = function (stream) {
+        return this._middlewareAdd(function (data) { return stream.emit(data).toPromise(); });
+    };
+    Stream.prototype.waitForCompletion = function (stream) {
+        return this._middlewareAdd(function (data) { return stream.emit(data).toCompletionPromise(); });
+    };
+    Stream.prototype.waitForError = function (stream) {
+        return this._middlewareAdd(function (data) { return stream.emit(data).toErrorPromise(); });
+    };
+    Stream.prototype.toCompletionPromise = function () {
         var _this = this;
         return new Promise(function (resolve, reject) {
-            _this.subscribe(void 0, reject, function () { return resolve(_this._lastValue); });
+            _this.subscribe(void 0, reject, function () { return resolve(_this._lastValue); }).once();
+        });
+    };
+    Stream.prototype.toErrorPromise = function () {
+        var _this = this;
+        return new Promise(function (resolve, reject) {
+            _this.subscribe(void 0, resolve, function () { return reject(const_1.COMPLETED); }).once();
         });
     };
     Stream.prototype.toPromise = function () {
@@ -220,76 +270,100 @@ var Stream = /** @class */ (function () {
             if (!this._emitPromise) {
                 this._emitPromise = this._emitLoop(this._prebuffer);
             }
+            return this._emitPromise;
         }
-        else {
-            singleElementPrebuffer[0] = data;
-            if (!this._emitPromise) {
-                this._emitPromise = this._emitLoop(singleElementPrebuffer);
-            }
-        }
-        return this._emitPromise;
+        singleElementPrebuffer[0] = data;
+        return this._emitLoop(singleElementPrebuffer);
     };
     Stream.prototype._emitLoop = function (prebuffer) {
         return __awaiter(this, void 0, void 0, function () {
-            var temp, _i, prebuffer_1, data, cancelled, _a, _b, middleware, _c, _d, middleware;
+            var temp, _i, prebuffer_1, data, cancelled, _a, _b, middleware, _c, _d, middleware, error_1;
             return __generator(this, function (_e) {
                 switch (_e.label) {
                     case 0:
                         _i = 0, prebuffer_1 = prebuffer;
                         _e.label = 1;
                     case 1:
-                        if (!(_i < prebuffer_1.length)) return [3 /*break*/, 10];
+                        if (!(_i < prebuffer_1.length)) return [3 /*break*/, 19];
                         data = prebuffer_1[_i];
                         temp = data;
                         if (this._isPaused) {
-                            return [3 /*break*/, 10];
+                            return [3 /*break*/, 19];
                         }
-                        cancelled = false;
-                        if (!this._middlewares) return [3 /*break*/, 5];
-                        _a = 0, _b = this._middlewares;
                         _e.label = 2;
                     case 2:
-                        if (!(_a < _b.length)) return [3 /*break*/, 5];
-                        middleware = _b[_a];
-                        return [4 /*yield*/, middleware(temp, this)];
+                        _e.trys.push([2, 17, , 18]);
+                        cancelled = false;
+                        if (!this._middlewares) return [3 /*break*/, 9];
+                        _a = 0, _b = this._middlewares;
+                        _e.label = 3;
                     case 3:
-                        temp = _e.sent();
-                        if (temp === const_1.CANCELLED) {
-                            cancelled = true;
-                            return [3 /*break*/, 5];
-                        }
-                        _e.label = 4;
+                        if (!(_a < _b.length)) return [3 /*break*/, 9];
+                        middleware = _b[_a];
+                        temp = middleware(temp, this);
+                        if (!(temp instanceof Stream)) return [3 /*break*/, 5];
+                        return [4 /*yield*/, temp.toPromise()];
                     case 4:
-                        _a++;
-                        return [3 /*break*/, 2];
-                    case 5:
-                        if (cancelled) {
-                            return [3 /*break*/, 9];
-                        }
-                        this._lastValue = temp;
-                        this._transmittedCount++;
-                        this._subscriberOnData(temp);
-                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 9];
-                        _c = 0, _d = this._middlewaresAfterDispatch;
-                        _e.label = 6;
-                    case 6:
-                        if (!(_c < _d.length)) return [3 /*break*/, 9];
-                        middleware = _d[_c];
-                        return [4 /*yield*/, middleware(temp, this)];
-                    case 7:
                         temp = _e.sent();
+                        return [3 /*break*/, 7];
+                    case 5:
+                        if (!(temp instanceof Promise)) return [3 /*break*/, 7];
+                        return [4 /*yield*/, temp];
+                    case 6:
+                        temp = _e.sent();
+                        _e.label = 7;
+                    case 7:
                         if (temp === const_1.CANCELLED) {
                             cancelled = true;
                             return [3 /*break*/, 9];
                         }
                         _e.label = 8;
                     case 8:
-                        _c++;
-                        return [3 /*break*/, 6];
+                        _a++;
+                        return [3 /*break*/, 3];
                     case 9:
+                        if (cancelled) {
+                            return [3 /*break*/, 18];
+                        }
+                        this._lastValue = temp;
+                        this._transmittedCount++;
+                        this._subscriberOnData(temp);
+                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 16];
+                        _c = 0, _d = this._middlewaresAfterDispatch;
+                        _e.label = 10;
+                    case 10:
+                        if (!(_c < _d.length)) return [3 /*break*/, 16];
+                        middleware = _d[_c];
+                        temp = middleware(temp, this);
+                        if (!(temp instanceof Stream)) return [3 /*break*/, 12];
+                        return [4 /*yield*/, temp.toPromise()];
+                    case 11:
+                        temp = _e.sent();
+                        return [3 /*break*/, 14];
+                    case 12:
+                        if (!(temp instanceof Promise)) return [3 /*break*/, 14];
+                        return [4 /*yield*/, temp];
+                    case 13:
+                        temp = _e.sent();
+                        _e.label = 14;
+                    case 14:
+                        if (temp === const_1.CANCELLED) {
+                            cancelled = true;
+                            return [3 /*break*/, 16];
+                        }
+                        _e.label = 15;
+                    case 15:
+                        _c++;
+                        return [3 /*break*/, 10];
+                    case 16: return [3 /*break*/, 18];
+                    case 17:
+                        error_1 = _e.sent();
+                        this._subscriberOnError(error_1);
+                        return [3 /*break*/, 18];
+                    case 18:
                         _i++;
                         return [3 /*break*/, 1];
-                    case 10:
+                    case 19:
                         this._emitPromise = null;
                         return [2 /*return*/, temp];
                 }
@@ -301,12 +375,7 @@ var Stream = /** @class */ (function () {
             this._middlewares = [];
         }
         this._middlewares.push(middleware);
-        if (this._isComplex) {
-            var stream = new this.constructor();
-            this.subscribeStream(stream);
-            return stream;
-        }
-        return this;
+        return this._isComplex ? this : this.fork();
     };
     Stream.prototype._middlewareAfterDispatchAdd = function (middleware) {
         if (this._middlewaresAfterDispatch === void 0) {

@@ -1,6 +1,19 @@
 import { StreamInterface } from '../interfaces/stream_interface';
 import { Stream } from "../stream";
-export declare class FetchStream<T> extends Stream<T> {
+export interface FetchStreamInterface<T> extends StreamInterface<T> {
+    extractBlob(): this;
+    extractFormData(): this;
+    extractJson(): this;
+    extractText(): this;
+}
+export declare class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
+    extractBlob(): this;
+    extractFormData(): this;
+    extractJson(): this;
+    extractText(): this;
+    emit(options?: any): this;
+}
+export declare class FetchStream<T> extends FetchResponseStream<T> {
     protected _url: string;
     protected _options: any;
     static delete<T>(url: string, _options?: any): FetchStream<T>;
@@ -10,6 +23,7 @@ export declare class FetchStream<T> extends Stream<T> {
     static post<T>(url: string, data: T, _options?: any): FetchStream<T>;
     static put<T>(url: string, data: T, _options?: any): FetchStream<T>;
     constructor(_url: string, _options?: any);
+    readonly clone: this;
     emit(options?: any): this;
     delete<T>(options?: any): this;
     get<T>(options?: any): this;
@@ -17,9 +31,5 @@ export declare class FetchStream<T> extends Stream<T> {
     patch<T>(body: T, options?: any): this;
     post<T>(body: T, options?: any): this;
     put<T>(body: T, options?: any): this;
-    extractBlob(): StreamInterface<T>;
-    extractFormData(): StreamInterface<T>;
-    extractJson(): StreamInterface<T>;
-    extractText(): StreamInterface<T>;
     protected _request(url: string, options?: any): any;
 }

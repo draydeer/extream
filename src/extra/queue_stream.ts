@@ -1,3 +1,4 @@
+import {StreamInterface} from "../interfaces/stream_interface";
 import {Stream} from "../stream";
 
 export class QueueStream<T> extends Stream<T> {

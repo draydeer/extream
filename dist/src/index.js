@@ -36,8 +36,9 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
-var stream_buffer_1 = require("./stream_buffer");
+var stream_1 = require("./stream");
 var fetch_stream_1 = require("./extra/fetch_stream");
+var fetch_stream_2 = require("./extra/fetch_stream");
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
@@ -76,16 +77,58 @@ var fetch_stream_1 = require("./extra/fetch_stream");
 //    w.emit("3");
 //}, 3000);
 (function () { return __awaiter(_this, void 0, void 0, function () {
-    var buf, fs;
+    var fs;
     return __generator(this, function (_a) {
-        buf = new stream_buffer_1.StreamBuffer(3);
-        fs = fetch_stream_1.FetchStream.post('https://google.com', 'test')
-            .filter(function (data) {
-            return true;
-        })
-            .extractText()
-            .exec(function (data) { return data.substr(0, 10); })
-            .subscribe(function (data) { return console.log(data); }, function (err) { return console.error(err); });
+        try {
+            fs = fetch_stream_1.FetchStream.get('https://google.com', 'test')
+                .select(function (response) { return response.ok ? 'ok' : 'error'; }, {
+                ok: new fetch_stream_2.FetchResponseStream()
+                    .extractText().map(function (data) { return data.substr(0, 10); }),
+                error: new stream_1.Stream()
+                    .map(function (data) { return 'not ok'; })
+            });
+            fs.subscribe(function (data) {
+                console.log(data);
+            }, function (err) {
+                console.error(err);
+            });
+            //const ms = new MathStream();
+            //
+            //ms.sum().average().mul().sqrt().subscribe((data) => {
+            //    console.log(`data: ${data}`);
+            //}, (err) => {
+            //    console.error(err);
+            //});
+            //
+            //ms.emit(1);
+            //ms.emit(2);
+            //ms.emit(3);
+            //ms.emit(4);
+            //ms.emit(5);
+            // const s1 = new Stream<any>().map((data: any) => "11");
+            // const s2 = new Stream<any>().map((data: any) => "22");
+            // const s3 = new Stream<any>().map((data: any) => "33");
+            // const s4 = new IntervalStream<any>(0.5).map(() => "b");
+            // const s5 = new Stream<any>().map((data: any) => console.log(data) && "5");
+            //
+            // const e = new Executor<any>(async (delegate: Delegate<any>) => {
+            //     delegate.emit("start");
+            //
+            //     const r = await delegate.race(s1, s2, s3).filter((a) => a !== "a").toPromise();
+            //
+            //     delegate.emit("stop");
+            //
+            //     return r;
+            // }).pipeToIncoming(s4).pipeOutgoingTo(s5);
+            //
+            // e.then(() => console.log('ok')).catch(() => console.log('err'));
+            // setTimeout(() => e.complete(), 1000);
+            // setTimeout(() => s2.emit(1), 6000);
+        }
+        catch (err) {
+            console.error(err);
+        }
         return [2 /*return*/];
     });
 }); })();
+setTimeout(function () { }, 60000000);

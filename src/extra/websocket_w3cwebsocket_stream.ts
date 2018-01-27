@@ -1,5 +1,6 @@
 import {Stream} from "../stream";
 import {w3cwebsocket as WebSocketClient} from "websocket";
+import {StreamInterface} from "../interfaces/stream_interface";
 
 export class WebsocketW3CWebsocketStream<T> extends Stream<T> {
 

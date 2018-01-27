@@ -10,7 +10,7 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
     protected _async: (agent: Delegate<T>) => Promise<T>;
     protected _delegate: Delegate<T>;
     protected _error: any;
-    protected _incomingStream: StreamInterface<T> = new Stream<any>();
+    protected _incomingStream: StreamInterface<T> = new Stream<T>();
     protected _promise: Promise<T>;
     protected _result: T;
 

@@ -2,7 +2,40 @@ import * as fetch from "node-fetch";
 import {StreamInterface} from '../interfaces/stream_interface';
 import {Stream} from "../stream";
 
-export class FetchStream<T> extends Stream<T> {
+export interface FetchStreamInterface<T> extends StreamInterface<T> {
+    extractBlob(): this;
+    extractFormData(): this;
+    extractJson(): this;
+    extractText(): this;
+}
+
+export class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
+
+    // middlewares
+
+    public extractBlob() {
+        return this._middlewareAdd((data: any, stream) => data.blob());
+    }
+
+    public extractFormData() {
+        return this._middlewareAdd((data: any, stream) => data.formData());
+    }
+
+    public extractJson() {
+        return this._middlewareAdd((data: any, stream) => data.json());
+    }
+
+    public extractText() {
+        return this._middlewareAdd((data: any, stream) => data.text());
+    }
+
+    public emit(options?: any): this {
+        return super.emit(options);
+    }
+
+}
+
+export class FetchStream<T> extends FetchResponseStream<T> {
 
     public static delete<T>(url: string, _options?: any): FetchStream<T> {
         return new FetchStream<T>(url).delete(_options);
@@ -32,6 +65,10 @@ export class FetchStream<T> extends Stream<T> {
         super();
     }
 
+    public get clone(): this {
+        return new FetchResponseStream<T>() as this;
+    }
+
     public emit(options?: any): this {
         options = Object.assign({}, this._options, options);
 
@@ -39,7 +76,7 @@ export class FetchStream<T> extends Stream<T> {
             options.method = 'GET';
         }
 
-        this._request(this._url, Object.assign({}, this._options, options));
+        this._request(this._url, options);
 
         return this;
     }
@@ -68,32 +105,8 @@ export class FetchStream<T> extends Stream<T> {
         return this.emit(options ? Object.assign(options, {body, method: 'PUT'}) : {body, method: 'PUT'});
     }
 
-    // middlewares
-
-    public extractBlob(): StreamInterface<T> {
-        return this._middlewareAdd((data: any, stream) => data.blob());
-    }
-
-    public extractFormData(): StreamInterface<T> {
-        return this._middlewareAdd((data: any, stream) => data.formData());
-    }
-
-    public extractJson(): StreamInterface<T> {
-        return this._middlewareAdd((data: any, stream) => data.json());
-    }
-
-    public extractText(): StreamInterface<T> {
-        return this._middlewareAdd((data: any, stream) => data.text());
-    }
-
     protected _request(url: string, options?: any) {
-        if (! options) {
-            options = Object.assign({}, this._options);
-        } else {
-            options = Object.assign({}, this._options, options);
-        }
-
-        return fetch(url, options).then((response) => {
+        return fetch(url, Object.assign(options || {}, this._options)).then((response) => {
             super.emit(response);
         }).catch((error) => {
             this.error(error);

@@ -14,12 +14,13 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected _emitPromise: Promise<T>;
     protected _isComplex: boolean;
-    protected _postbuffer: StreamBuffer<T>;
-    protected _prebuffer: StreamBuffer<T>;
     protected _isPaused: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
+    protected _postbuffer: StreamBuffer<T>;
+    protected _prebuffer: StreamBuffer<T>;
+    protected _root: StreamInterface<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _subscribersCount: number = 0;
     protected _transmittedCount: number = 0;
@@ -56,12 +57,20 @@ export class Stream<T> implements StreamInterface<T> {
 
     }
 
+    public get clone(): this {
+        return new Stream<T>() as this;
+    }
+
     public get isPaused(): boolean {
         return this._isPaused;
     }
 
     public get lastValue(): T {
         return this._lastValue;
+    }
+    
+    public get root(): this {
+        return this._root as this || this;
     }
 
     public get subscribersCount(): number {
@@ -70,6 +79,14 @@ export class Stream<T> implements StreamInterface<T> {
 
     public get transmittedCount(): number {
         return this._transmittedCount;
+    }
+
+    public setRoot(stream: StreamInterface<T>): this {
+        if (stream !== this) {
+            this._root = stream;
+        }
+
+        return this;
     }
 
     public complete(): this {
@@ -102,12 +119,12 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public fork(): StreamInterface<T> {
-        let stream: Stream<T> = new Stream<T>();
+    public fork(): this {
+        let stream = this.clone;
 
         this.subscribeStream(stream);
 
-        return stream;
+        return stream.setRoot(this.root);
     }
 
     public pause(): this {
@@ -166,7 +183,15 @@ export class Stream<T> implements StreamInterface<T> {
 
     // middlewares
 
-    public delay(milliseconds: number): StreamInterface<T> {
+    public debug(callback: (data: T, stream?: StreamInterface<T>) => void): this {
+        return this._middlewareAdd((data) => {
+            callback(data);
+
+            return data;
+        });
+    }
+
+    public delay(milliseconds: number): this {
         return this._middlewareAdd((data) => new Promise<T>(
             (resolve) => setTimeout(
                 () => resolve(data), milliseconds
@@ -174,15 +199,15 @@ export class Stream<T> implements StreamInterface<T> {
         ));
     }
 
-    public dispatch(): StreamInterface<T> {
-        return this._middlewareAdd((data, stream) => {
+    public dispatch(): this {
+        return this._middlewareAdd((data) => {
             this._subscriberOnData(data);
 
             return data;
         });
     }
 
-    public exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): StreamInterface<T> {
+    public exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
         return this._middlewareAdd((data, stream) => {
             let result = middleware(data, stream);
 
@@ -198,9 +223,9 @@ export class Stream<T> implements StreamInterface<T> {
         );
     }
 
-    public first(): StreamInterface<T> {
-        this._middlewareAfterDispatchAdd((data, stream) => {
-            this._subscriberOnData(data).complete();
+    public first(): this {
+        this._middlewareAfterDispatchAdd((data) => {
+            this.complete();
 
             return data;
         });
@@ -208,17 +233,47 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): StreamInterface<T> {
+    public map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
         return this._middlewareAdd(middleware);
     }
 
-    public skip(count: number): StreamInterface<T> {
+    public select(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this {
+        return this._middlewareAdd((data) => {
+            const index = selector(data);
+
+            if (index in streams) {
+                return streams[index].root.emit(data).toPromise();
+            }
+
+            throw new Error(`"select" middleware got invalid index from selector: ${index}`);
+        });
+    }
+
+    public skip(count: number): this {
         return this._middlewareAdd((data, stream) => count -- > 0 ? CANCELLED : data);
     }
 
-    public toOnCompletePromise(): Promise<T> {
+    public waitFor(stream: StreamInterface<T>): this {
+        return this._middlewareAdd((data: T) => stream.emit(data).toPromise());
+    }
+
+    public waitForCompletion(stream: StreamInterface<T>): this {
+        return this._middlewareAdd((data: T) => stream.emit(data).toCompletionPromise());
+    }
+
+    public waitForError(stream: StreamInterface<T>): this {
+        return this._middlewareAdd((data: T) => stream.emit(data).toErrorPromise());
+    }
+
+    public toCompletionPromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(void 0, reject, () => resolve(this._lastValue));
+            this.subscribe(void 0, reject, () => resolve(this._lastValue)).once();
+        });
+    }
+
+    public toErrorPromise(): Promise<T> {
+        return new Promise<T>((resolve, reject) => {
+            this.subscribe(void 0, resolve, () => reject(COMPLETED)).once();
         });
     }
 
@@ -241,19 +296,17 @@ export class Stream<T> implements StreamInterface<T> {
             if (! this._emitPromise) {
                 this._emitPromise = this._emitLoop(this._prebuffer);
             }
-        } else {
-            singleElementPrebuffer[0] = data;
 
-            if (! this._emitPromise) {
-                this._emitPromise = this._emitLoop(singleElementPrebuffer);
-            }
+            return this._emitPromise;
         }
 
-        return this._emitPromise;
+        singleElementPrebuffer[0] = data;
+
+        return this._emitLoop(singleElementPrebuffer);
     }
 
     protected async _emitLoop(prebuffer): Promise<T> {
-        let temp: T | Promise<T> | Error;
+        let temp: T | Error | Promise<T>;
 
         for (let data of prebuffer) {
             temp = data;
@@ -262,39 +315,55 @@ export class Stream<T> implements StreamInterface<T> {
                 break;
             }
 
-            let cancelled = false;
+            try {
+                let cancelled = false;
 
-            if (this._middlewares) {
-                for (const middleware of this._middlewares) {
-                    temp = await middleware(temp as T, this);
+                if (this._middlewares) {
+                    for (const middleware of this._middlewares) {
+                        temp = middleware(temp as T, this);
 
-                    if (temp === CANCELLED) {
-                        cancelled = true;
+                        if (temp instanceof Stream) {
+                            temp = await temp.toPromise();
+                        } else if (temp instanceof Promise) {
+                            temp = await temp;
+                        }
 
-                        break;
+                        if (temp === CANCELLED) {
+                            cancelled = true;
+
+                            break;
+                        }
                     }
                 }
-            }
 
-            if (cancelled) {
-                continue;
-            }
+                if (cancelled) {
+                    continue;
+                }
 
-            this._lastValue = <T>temp;
-            this._transmittedCount ++;
+                this._lastValue = <T>temp;
+                this._transmittedCount ++;
 
-            this._subscriberOnData(<T>temp);
+                this._subscriberOnData(<T>temp);
 
-            if (this._middlewaresAfterDispatch) {
-                for (const middleware of this._middlewaresAfterDispatch) {
-                    temp = await middleware(temp as T, this);
+                if (this._middlewaresAfterDispatch) {
+                    for (const middleware of this._middlewaresAfterDispatch) {
+                        temp = middleware(temp as T, this);
 
-                    if (temp === CANCELLED) {
-                        cancelled = true;
+                        if (temp instanceof Stream) {
+                            temp = await temp.toPromise();
+                        } else if (temp instanceof Promise) {
+                            temp = await temp;
+                        }
 
-                        break;
+                        if (temp === CANCELLED) {
+                            cancelled = true;
+
+                            break;
+                        }
                     }
                 }
+            } catch (error) {
+                this._subscriberOnError(error);
             }
         }
 
@@ -310,15 +379,7 @@ export class Stream<T> implements StreamInterface<T> {
 
         this._middlewares.push(middleware);
 
-        if (this._isComplex) {
-            const stream = new this.constructor();
-
-            this.subscribeStream(stream);
-
-            return stream as this;
-        }
-
-        return this;
+        return this._isComplex ? this : this.fork();
     }
 
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T> {

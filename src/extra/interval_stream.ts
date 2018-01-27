@@ -1,3 +1,4 @@
+import {StreamInterface} from "../interfaces/stream_interface";
 import {Stream} from "../stream";
 
 export class IntervalStream<T> extends Stream<number|T> {
