@@ -107,10 +107,10 @@ function stop(title, ops) {
         try {
             ms = new math_stream_1.MathStream();
             ii = 0;
-            ms.complex()
+            ms //.complex()
                 .min()
                 .subscribe(function (data) {
-                //console.log(`data: ${ii ++}`);
+                //console.log(`data: ${data}`);
             }, function (err) {
                 console.error(err);
             });

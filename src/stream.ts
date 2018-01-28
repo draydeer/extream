@@ -1,11 +1,10 @@
 import {CANCELLED, COMPLETED} from "./const";
+import {BufferInterface} from "./interfaces/buffer_interface";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
-import {StreamBuffer} from "./stream_buffer";
+import {CyclicBuffer} from "./buffer";
 import {Subscriber} from "./subscriber";
 import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
-
-const singleElementPrebuffer = [[null, null]];
 
 /**
  * Stream.
@@ -16,11 +15,12 @@ export class Stream<T> implements StreamInterface<T> {
     protected _isEmptyLastValue: boolean;
     protected _isComplex: boolean;
     protected _isPaused: boolean;
+    protected _isProcessing: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
-    protected _postbuffer: StreamBuffer<[T, SubscriberInterface<T>[]]>;
-    protected _prebuffer: StreamBuffer<[T, SubscriberInterface<T>[]]>;
+    protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _root: StreamInterface<T>;
     protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
     protected _subscribersCount: number = 0;
@@ -141,13 +141,13 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public postbuffer(size: number = 10): this {
-        this._postbuffer = new StreamBuffer(size);
+        this._postbuffer = new CyclicBuffer(size);
 
         return this;
     }
 
     public prebuffer(size: number = 10): this {
-        this._prebuffer = new StreamBuffer(size);
+        this._prebuffer = new CyclicBuffer(size);
 
         return this;
     }
@@ -310,22 +310,62 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected _emit(data: T, subscribers?: SubscriberInterface<T>[]) {
         if (this._prebuffer) {
-            this._prebuffer.add([data, subscribers]);
-
-            if (! this._emitLoopPromise) {
-                //this._emitLoopPromise = this._emitLoop(this._prebuffer);
+            if (this._isProcessing) {
+                this._prebuffer.add([data, subscribers]);
+            } else {
+                this._emitLoop(data, subscribers, 0);
             }
 
-            return this._emitLoopPromise;
+            return;
         }
 
-        singleElementPrebuffer[0][0] = data;
-        singleElementPrebuffer[0][1] = subscribers;
-
-        return this._emitLoop(singleElementPrebuffer);
+        return this._emitLoop(data, subscribers, 0);
     }
 
-    protected _emitLoop(prebuffer) { //: Promise<T> {
+    protected _emitLoop(d, s, i, e?) {
+        this._isProcessing = true;
+
+        if (e) {
+            this._subscriberOnError(e, s);
+        }
+
+        while (true) {
+            if (this._middlewares) {
+                for (const l = this._middlewares.length; i < l; i ++) {
+                    d = this._middlewares[i](d as T, this);
+
+                    if (d instanceof Promise) {
+                        d.then(
+                            (d) => this._emitLoop(d, s, i + 1),
+                            (e) => this._emitLoop(d, s, i + 1, e)
+                        );
+
+                        return;
+                    }
+
+                    if (d === CANCELLED) {
+                        break;
+                    }
+                }
+            }
+
+            if (d !== CANCELLED) {
+                this._subscriberOnData(d, s);
+            }
+
+            if (! this._prebuffer || this._prebuffer.isEmpty) {
+                this._isProcessing = false;
+
+                return;
+            }
+
+            i = 0;
+
+            [d, s] = this._prebuffer.next().value;
+        }
+    }
+
+    protected _emitLoop1(prebuffer) { //: Promise<T> {
         let temp: T | Error | Promise<T>;
 
         for (let [data, subscribers] of prebuffer) {

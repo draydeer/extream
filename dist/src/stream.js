@@ -1,9 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var const_1 = require("./const");
-var stream_buffer_1 = require("./stream_buffer");
+var buffer_1 = require("./buffer");
 var subscriber_1 = require("./subscriber");
-var singleElementPrebuffer = [[null, null]];
 /**
  * Stream.
  */
@@ -121,12 +120,12 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype.postbuffer = function (size) {
         if (size === void 0) { size = 10; }
-        this._postbuffer = new stream_buffer_1.StreamBuffer(size);
+        this._postbuffer = new buffer_1.CyclicBuffer(size);
         return this;
     };
     Stream.prototype.prebuffer = function (size) {
         if (size === void 0) { size = 10; }
-        this._prebuffer = new stream_buffer_1.StreamBuffer(size);
+        this._prebuffer = new buffer_1.CyclicBuffer(size);
         return this;
     };
     Stream.prototype.resume = function () {
@@ -240,17 +239,48 @@ var Stream = /** @class */ (function () {
     };
     Stream.prototype._emit = function (data, subscribers) {
         if (this._prebuffer) {
-            this._prebuffer.add([data, subscribers]);
-            if (!this._emitLoopPromise) {
-                //this._emitLoopPromise = this._emitLoop(this._prebuffer);
+            if (this._isProcessing) {
+                this._prebuffer.add([data, subscribers]);
             }
-            return this._emitLoopPromise;
+            else {
+                this._emitLoop(data, subscribers, 0);
+            }
+            return;
         }
-        singleElementPrebuffer[0][0] = data;
-        singleElementPrebuffer[0][1] = subscribers;
-        return this._emitLoop(singleElementPrebuffer);
+        return this._emitLoop(data, subscribers, 0);
     };
-    Stream.prototype._emitLoop = function (prebuffer) {
+    Stream.prototype._emitLoop = function (d, s, i, e) {
+        var _this = this;
+        this._isProcessing = true;
+        if (e) {
+            this._subscriberOnError(e, s);
+        }
+        while (true) {
+            if (this._middlewares) {
+                for (var l = this._middlewares.length; i < l; i++) {
+                    d = this._middlewares[i](d, this);
+                    if (d instanceof Promise) {
+                        d.then(function (d) { return _this._emitLoop(d, s, i + 1); }, function (e) { return _this._emitLoop(d, s, i + 1, e); });
+                        return;
+                    }
+                    if (d === const_1.CANCELLED) {
+                        break;
+                    }
+                }
+            }
+            if (d !== const_1.CANCELLED) {
+                this._subscriberOnData(d, s);
+            }
+            if (!this._prebuffer || this._prebuffer.isEmpty) {
+                this._isProcessing = false;
+                return;
+            }
+            i = 0;
+            _a = this._prebuffer.next().value, d = _a[0], s = _a[1];
+        }
+        var _a;
+    };
+    Stream.prototype._emitLoop1 = function (prebuffer) {
         var temp;
         for (var _i = 0, prebuffer_1 = prebuffer; _i < prebuffer_1.length; _i++) {
             var _a = prebuffer_1[_i], data = _a[0], subscribers = _a[1];

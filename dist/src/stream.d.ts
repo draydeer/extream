@@ -1,6 +1,6 @@
+import { BufferInterface } from "./interfaces/buffer_interface";
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
-import { StreamBuffer } from "./stream_buffer";
 import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
 /**
  * Stream.
@@ -10,11 +10,12 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _isEmptyLastValue: boolean;
     protected _isComplex: boolean;
     protected _isPaused: boolean;
+    protected _isProcessing: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
-    protected _postbuffer: StreamBuffer<[T, SubscriberInterface<T>[]]>;
-    protected _prebuffer: StreamBuffer<[T, SubscriberInterface<T>[]]>;
+    protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _root: StreamInterface<T>;
     protected _subscribers: {
         [key: string]: SubscriberInterface<T>;
@@ -66,8 +67,9 @@ export declare class Stream<T> implements StreamInterface<T> {
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;
     protected _complete(): this;
-    protected _emit(data: T, subscribers?: SubscriberInterface<T>[]): T | Promise<T>;
-    protected _emitLoop(prebuffer: any): T;
+    protected _emit(data: T, subscribers?: SubscriberInterface<T>[]): void;
+    protected _emitLoop(d: any, s: any, i: any, e?: any): void;
+    protected _emitLoop1(prebuffer: any): T;
     protected _middlewareAdd(middleware: StreamMiddleware<T>): this;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;

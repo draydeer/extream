@@ -3,7 +3,7 @@ import {WebsocketW3CWebsocketStream} from "./extra/websocket_w3cwebsocket_stream
 import {Executor} from "./executor";
 import {Delegate} from "./delegate";
 import {IntervalStream} from "./extra/interval_stream";
-import {StreamBuffer} from './stream_buffer';
+import {CyclicBuffer} from './buffer';
 import {FetchStream} from './extra/fetch_stream';
 import {FetchResponseStream} from "./extra/fetch_stream";
 import {MathStream} from "./extra/math_stream";
@@ -82,34 +82,34 @@ function stop(title, ops) {
 
 (async () => {
     try {
-        // const fs = FetchStream.get<any>('https://google.com', 'test')
-        //     //.map((response) => response.ok
-        //     //    ? new FetchResponseStream<any>().complex().extractText().map((data) => data.substr(0, 10))
-        //     //    : new Stream<any>().complex().map((data) => 'not ok')
-        //     //)
-        //     .select(
-        //         (response) => response.ok ? 'ok' : 'error',
-        //         {
-        //             ok: new FetchResponseStream<any>()
-        //                 .extractText().map((data) => data.substr(0, 10)),
-        //             error: new Stream<any>()
-        //                 .map((data) => 'not ok')
-        //         }
-        //     );
-        //
-        // fs.subscribe((data) => {
-        //     console.log(data);
-        // }, (err) => {
-        //     console.error(err);
-        // });
+         //const fs = FetchStream.get<any>('https://google.com', 'test')
+         //    //.map((response) => response.ok
+         //    //    ? new FetchResponseStream<any>().complex().extractText().map((data) => data.substr(0, 10))
+         //    //    : new Stream<any>().complex().map((data) => 'not ok')
+         //    //)
+         //    .select(
+         //        (response) => response.ok ? 'ok' : 'error',
+         //        {
+         //            ok: new FetchResponseStream<any>()
+         //                .extractText().map((data) => data.substr(0, 10)),
+         //            error: new Stream<any>()
+         //                .map((data) => 'not ok')
+         //        }
+         //    );
+         //
+         //fs.subscribe((data) => {
+         //    console.log(data);
+         //}, (err) => {
+         //    console.error(err);
+         //});
 
         const ms = new MathStream();
         let ii = 0;
 
-        ms.complex()
+        ms//.complex()
             .min()
             .subscribe((data) => {
-               //console.log(`data: ${ii ++}`);
+               //console.log(`data: ${data}`);
             }, (err) => {
                console.error(err);
             });

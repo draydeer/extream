@@ -1,46 +1,35 @@
 import {BufferIsEmptyError, BufferIsFullError} from './errors';
+import {BufferInterface} from "./interfaces/buffer_interface";
 
-const iteratorDone = { done: true };
+const iteratorDone = { done: true, value: void 0 };
 const iteratorNext = { done: false, value: void 0 };
 
-export class StreamBuffer<T> implements Iterator<T> {
+export class CyclicBuffer<T> implements BufferInterface<T> {
 
     protected _buffer: T[];
     protected _headIndex: number = 0;
-    protected _size: number;
     protected _tailIndex: number = 0;
 
-    public constructor(size: number = 10, preallocate?: boolean) {
-        if (size < 1) {
+    public constructor(protected _size: number = 10, protected _preallocate?: boolean) {
+        if (_size < 1) {
             throw new Error('Size must be >= 0');
         }
 
-        this._size = size;
-
-        if (preallocate) {
-            this._buffer = new Array<T>(size);
+        if (_preallocate) {
+            this._buffer = new Array<T>(_size);
         }
+    }
+
+    public get current(): T {
+        if (this._headIndex === this._tailIndex) {
+            throw new BufferIsEmptyError();
+        }
+
+        return this._buffer[this._tailIndex % this._size];
     }
 
     public get isEmpty(): boolean {
         return this._headIndex === this._tailIndex;
-    }
-
-    public next(): IteratorResult<T> {
-        if (this.isEmpty) {
-            return iteratorDone;
-        }
-
-        iteratorNext.value = this.shift();
-
-        return iteratorNext;
-    }
-
-    public flush(): this {
-        this._buffer = [];
-        this._headIndex = this._tailIndex = 0;
-
-        return this;
     }
 
     public add(data: T): this {
@@ -61,6 +50,24 @@ export class StreamBuffer<T> implements Iterator<T> {
         this._headIndex ++;
 
         return this;
+    }
+
+    public flush(): this {
+        this._buffer = this._preallocate ? new Array<T>(this._size) : [];
+        this._headIndex = 0;
+        this._tailIndex = 0;
+
+        return this;
+    }
+
+    public next(): IteratorResult<T> {
+        if (this._headIndex === this._tailIndex) {
+            return iteratorDone;
+        }
+
+        iteratorNext.value = this.shift();
+
+        return iteratorNext;
     }
 
     public shift(): T {
