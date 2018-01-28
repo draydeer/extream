@@ -19,7 +19,7 @@ var WebsocketW3CWebsocketStream = /** @class */ (function (_super) {
         _this.init(url);
         return _this;
     }
-    WebsocketW3CWebsocketStream.prototype.emit = function (data) {
+    WebsocketW3CWebsocketStream.prototype.emit = function (data, subscribers) {
         if (this._client.readyState === this._client.OPEN) {
             this._client.send(String(data));
         }

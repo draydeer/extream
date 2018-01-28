@@ -30,9 +30,6 @@ var FetchResponseStream = /** @class */ (function (_super) {
     FetchResponseStream.prototype.extractText = function () {
         return this._middlewareAdd(function (data, stream) { return data.text(); });
     };
-    FetchResponseStream.prototype.emit = function (options) {
-        return _super.prototype.emit.call(this, options);
-    };
     return FetchResponseStream;
 }(stream_1.Stream));
 exports.FetchResponseStream = FetchResponseStream;
@@ -69,12 +66,12 @@ var FetchStream = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
-    FetchStream.prototype.emit = function (options) {
+    FetchStream.prototype.emit = function (options, subscribers) {
         options = Object.assign({}, this._options, options);
         if (options.method === void 0) {
             options.method = 'GET';
         }
-        this._request(this._url, options);
+        this._request(this._url, options, subscribers);
         return this;
     };
     FetchStream.prototype.delete = function (options) {
@@ -95,10 +92,10 @@ var FetchStream = /** @class */ (function (_super) {
     FetchStream.prototype.put = function (body, options) {
         return this.emit(options ? Object.assign(options, { body: body, method: 'PUT' }) : { body: body, method: 'PUT' });
     };
-    FetchStream.prototype._request = function (url, options) {
+    FetchStream.prototype._request = function (url, options, subscribers) {
         var _this = this;
         return fetch(url, Object.assign(options || {}, this._options)).then(function (response) {
-            _super.prototype.emit.call(_this, response);
+            _super.prototype.emit.call(_this, response, subscribers);
         }).catch(function (error) {
             _this.error(error);
         });

@@ -1,4 +1,3 @@
-import {StreamInterface} from "../interfaces/stream_interface";
 import {Stream} from "../stream";
 
 export class MathStream extends Stream<number> {

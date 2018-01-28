@@ -1,44 +1,9 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (_) try {
-            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [0, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 var const_1 = require("./const");
 var stream_buffer_1 = require("./stream_buffer");
 var subscriber_1 = require("./subscriber");
-var singleElementPrebuffer = [];
+var singleElementPrebuffer = [[null, null]];
 /**
  * Stream.
  */
@@ -129,12 +94,12 @@ var Stream = /** @class */ (function () {
         this._isComplex = true;
         return this;
     };
-    Stream.prototype.emit = function (data) {
-        this._emit(data);
+    Stream.prototype.emit = function (data, subscribers) {
+        this._emit(data, subscribers);
         return this;
     };
-    Stream.prototype.emitAndComplete = function (data) {
-        this._emit(data).then(this.complete.bind(this));
+    Stream.prototype.emitAndComplete = function (data, subscribers) {
+        //this._emit(data, subscribers).then(this.complete.bind(this));
         return this;
     };
     Stream.prototype.error = function (error) {
@@ -145,6 +110,10 @@ var Stream = /** @class */ (function () {
         var stream = this.clone;
         this.subscribeStream(stream);
         return stream.setRoot(this.root);
+    };
+    Stream.prototype.emptyLastValue = function () {
+        this._isEmptyLastValue = true;
+        return this;
     };
     Stream.prototype.pause = function () {
         this._isPaused = true;
@@ -225,13 +194,18 @@ var Stream = /** @class */ (function () {
         return this._middlewareAdd(function (data) {
             var index = selector(data);
             if (index in streams) {
-                return streams[index].emit(data).toPromise();
+                return new Promise(function (resolve, reject) {
+                    var subscriber = streams[index].subscribe(resolve, reject, function () { return reject(const_1.CANCELLED); }).isolated().once();
+                    streams[index].root.emit(data, [subscriber]);
+                });
             }
             throw new Error("\"select\" middleware got invalid index from selector: " + index);
         });
     };
-    Stream.prototype.skip = function (count) {
-        return this._middlewareAdd(function (data, stream) { return count-- > 0 ? const_1.CANCELLED : data; });
+    Stream.prototype.skip = function (middleware) {
+        return this._middlewareAdd(middleware instanceof Function
+            ? function (data, stream) { return middleware(data, stream) ? const_1.CANCELLED : data; }
+            : function (data, stream) { return middleware === data ? const_1.CANCELLED : data; });
     };
     Stream.prototype.waitFor = function (stream) {
         return this._middlewareAdd(function (data) { return stream.emit(data).toPromise(); });
@@ -264,111 +238,67 @@ var Stream = /** @class */ (function () {
         this._subscriberOnComplete();
         return this;
     };
-    Stream.prototype._emit = function (data) {
+    Stream.prototype._emit = function (data, subscribers) {
         if (this._prebuffer) {
-            this._prebuffer.add(data);
-            if (!this._emitPromise) {
-                this._emitPromise = this._emitLoop(this._prebuffer);
+            this._prebuffer.add([data, subscribers]);
+            if (!this._emitLoopPromise) {
+                //this._emitLoopPromise = this._emitLoop(this._prebuffer);
             }
-            return this._emitPromise;
+            return this._emitLoopPromise;
         }
-        singleElementPrebuffer[0] = data;
+        singleElementPrebuffer[0][0] = data;
+        singleElementPrebuffer[0][1] = subscribers;
         return this._emitLoop(singleElementPrebuffer);
     };
     Stream.prototype._emitLoop = function (prebuffer) {
-        return __awaiter(this, void 0, void 0, function () {
-            var temp, _i, prebuffer_1, data, cancelled, _a, _b, middleware, _c, _d, middleware, error_1;
-            return __generator(this, function (_e) {
-                switch (_e.label) {
-                    case 0:
-                        _i = 0, prebuffer_1 = prebuffer;
-                        _e.label = 1;
-                    case 1:
-                        if (!(_i < prebuffer_1.length)) return [3 /*break*/, 19];
-                        data = prebuffer_1[_i];
-                        temp = data;
-                        if (this._isPaused) {
-                            return [3 /*break*/, 19];
-                        }
-                        _e.label = 2;
-                    case 2:
-                        _e.trys.push([2, 17, , 18]);
-                        cancelled = false;
-                        if (!this._middlewares) return [3 /*break*/, 9];
-                        _a = 0, _b = this._middlewares;
-                        _e.label = 3;
-                    case 3:
-                        if (!(_a < _b.length)) return [3 /*break*/, 9];
-                        middleware = _b[_a];
+        var temp;
+        for (var _i = 0, prebuffer_1 = prebuffer; _i < prebuffer_1.length; _i++) {
+            var _a = prebuffer_1[_i], data = _a[0], subscribers = _a[1];
+            temp = data;
+            if (this._isPaused) {
+                break;
+            }
+            try {
+                var cancelled = false;
+                if (this._middlewares) {
+                    for (var _b = 0, _c = this._middlewares; _b < _c.length; _b++) {
+                        var middleware = _c[_b];
                         temp = middleware(temp, this);
-                        if (!(temp instanceof Stream)) return [3 /*break*/, 5];
-                        return [4 /*yield*/, temp.toPromise()];
-                    case 4:
-                        temp = _e.sent();
-                        return [3 /*break*/, 7];
-                    case 5:
-                        if (!(temp instanceof Promise)) return [3 /*break*/, 7];
-                        return [4 /*yield*/, temp];
-                    case 6:
-                        temp = _e.sent();
-                        _e.label = 7;
-                    case 7:
+                        if (temp instanceof Promise) {
+                            //temp = await temp;
+                        }
                         if (temp === const_1.CANCELLED) {
                             cancelled = true;
-                            return [3 /*break*/, 9];
+                            break;
                         }
-                        _e.label = 8;
-                    case 8:
-                        _a++;
-                        return [3 /*break*/, 3];
-                    case 9:
-                        if (cancelled) {
-                            return [3 /*break*/, 18];
-                        }
-                        this._lastValue = temp;
-                        this._transmittedCount++;
-                        this._subscriberOnData(temp);
-                        if (!this._middlewaresAfterDispatch) return [3 /*break*/, 16];
-                        _c = 0, _d = this._middlewaresAfterDispatch;
-                        _e.label = 10;
-                    case 10:
-                        if (!(_c < _d.length)) return [3 /*break*/, 16];
-                        middleware = _d[_c];
-                        temp = middleware(temp, this);
-                        if (!(temp instanceof Stream)) return [3 /*break*/, 12];
-                        return [4 /*yield*/, temp.toPromise()];
-                    case 11:
-                        temp = _e.sent();
-                        return [3 /*break*/, 14];
-                    case 12:
-                        if (!(temp instanceof Promise)) return [3 /*break*/, 14];
-                        return [4 /*yield*/, temp];
-                    case 13:
-                        temp = _e.sent();
-                        _e.label = 14;
-                    case 14:
-                        if (temp === const_1.CANCELLED) {
-                            cancelled = true;
-                            return [3 /*break*/, 16];
-                        }
-                        _e.label = 15;
-                    case 15:
-                        _c++;
-                        return [3 /*break*/, 10];
-                    case 16: return [3 /*break*/, 18];
-                    case 17:
-                        error_1 = _e.sent();
-                        this._subscriberOnError(error_1);
-                        return [3 /*break*/, 18];
-                    case 18:
-                        _i++;
-                        return [3 /*break*/, 1];
-                    case 19:
-                        this._emitPromise = null;
-                        return [2 /*return*/, temp];
+                    }
                 }
-            });
-        });
+                if (cancelled) {
+                    continue;
+                }
+                this._lastValue = temp;
+                this._transmittedCount++;
+                this._subscriberOnData(temp, subscribers);
+                if (this._middlewaresAfterDispatch) {
+                    for (var _d = 0, _e = this._middlewaresAfterDispatch; _d < _e.length; _d++) {
+                        var middleware = _e[_d];
+                        temp = middleware(temp, this);
+                        if (temp instanceof Promise) {
+                            //temp = await temp;
+                        }
+                        if (temp === const_1.CANCELLED) {
+                            cancelled = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (error) {
+                this._subscriberOnError(error);
+            }
+        }
+        this._emitLoopPromise = null;
+        return temp;
     };
     Stream.prototype._middlewareAdd = function (middleware) {
         if (this._middlewares === void 0) {
@@ -400,24 +330,54 @@ var Stream = /** @class */ (function () {
         }
         return this;
     };
-    Stream.prototype._subscriberOnComplete = function () {
-        for (var _i = 0, _a = Object.keys(this._subscribers); _i < _a.length; _i++) {
-            var subscriberId = _a[_i];
-            this._subscribers[subscriberId].doComplete();
+    Stream.prototype._subscriberOnComplete = function (subscribers) {
+        if (subscribers) {
+            for (var _i = 0, subscribers_1 = subscribers; _i < subscribers_1.length; _i++) {
+                var subscriber = subscribers_1[_i];
+                subscriber.doComplete();
+            }
+        }
+        else {
+            for (var subscriberId in this._subscribers) {
+                var subscriber = this._subscribers[subscriberId];
+                if (!subscriber.isIsolated) {
+                    this._subscribers[subscriberId].doComplete();
+                }
+            }
         }
         return this;
     };
-    Stream.prototype._subscriberOnData = function (data) {
-        for (var _i = 0, _a = Object.keys(this._subscribers); _i < _a.length; _i++) {
-            var subscriberId = _a[_i];
-            this._subscribers[subscriberId].doData(data);
+    Stream.prototype._subscriberOnData = function (data, subscribers) {
+        if (subscribers) {
+            for (var _i = 0, subscribers_2 = subscribers; _i < subscribers_2.length; _i++) {
+                var subscriber = subscribers_2[_i];
+                subscriber.doData(data);
+            }
+        }
+        else {
+            for (var subscriberId in this._subscribers) {
+                var subscriber = this._subscribers[subscriberId];
+                if (!subscriber.isIsolated) {
+                    this._subscribers[subscriberId].doData(data);
+                }
+            }
         }
         return this;
     };
-    Stream.prototype._subscriberOnError = function (error) {
-        for (var _i = 0, _a = Object.keys(this._subscribers); _i < _a.length; _i++) {
-            var subscriberId = _a[_i];
-            this._subscribers[subscriberId].doError(error);
+    Stream.prototype._subscriberOnError = function (error, subscribers) {
+        if (subscribers) {
+            for (var _i = 0, subscribers_3 = subscribers; _i < subscribers_3.length; _i++) {
+                var subscriber = subscribers_3[_i];
+                subscriber.doError(error);
+            }
+        }
+        else {
+            for (var subscriberId in this._subscribers) {
+                var subscriber = this._subscribers[subscriberId];
+                if (!subscriber.isIsolated) {
+                    this._subscribers[subscriberId].doError(error);
+                }
+            }
         }
         return this;
     };

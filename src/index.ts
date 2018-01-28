@@ -8,6 +8,40 @@ import {FetchStream} from './extra/fetch_stream';
 import {FetchResponseStream} from "./extra/fetch_stream";
 import {MathStream} from "./extra/math_stream";
 
+let time, timeSpentNew, timeSpentOld;
+
+function percent() {
+    console.log('==============================');
+
+    if (timeSpentOld < timeSpentNew) {
+        console.log((timeSpentNew / timeSpentOld * 100 - 100) + '% faster');
+    } else {
+        console.log((timeSpentOld / timeSpentNew * 100 - 100) + '% slower');
+    }
+
+    console.log('==============================');
+    console.log();
+}
+
+function start() {
+    time = new Date().getTime();
+}
+
+function stop(title, ops) {
+    timeSpentOld = timeSpentNew;
+
+    timeSpentNew = new Date().getTime() - time;
+
+    console.log('------------------------------');
+    console.info(title);
+    console.log();
+    console.log('Total ops.: ' + ops);
+    console.log('Time spent: ' + timeSpentNew + ' ms');
+    console.log('Ops. per second: ' + (1000 / timeSpentNew * ops));
+    console.log('Time per single op.: ' + (timeSpentNew / ops) + ' ms');
+    console.log();
+}
+
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
@@ -48,40 +82,50 @@ import {MathStream} from "./extra/math_stream";
 
 (async () => {
     try {
-        const fs = FetchStream.get<any>('https://google.com', 'test')
-            //.map((response) => response.ok
-            //    ? new FetchResponseStream<any>().complex().extractText().map((data) => data.substr(0, 10))
-            //    : new Stream<any>().complex().map((data) => 'not ok')
-            //)
-            .select(
-                (response) => response.ok ? 'ok' : 'error',
-                {
-                    ok: new FetchResponseStream<any>()
-                        .extractText().map((data) => data.substr(0, 10)),
-                    error: new Stream<any>()
-                        .map((data) => 'not ok')
-                }
-            );
-
-        fs.subscribe((data) => {
-            console.log(data);
-        }, (err) => {
-            console.error(err);
-        });
-
-        //const ms = new MathStream();
+        // const fs = FetchStream.get<any>('https://google.com', 'test')
+        //     //.map((response) => response.ok
+        //     //    ? new FetchResponseStream<any>().complex().extractText().map((data) => data.substr(0, 10))
+        //     //    : new Stream<any>().complex().map((data) => 'not ok')
+        //     //)
+        //     .select(
+        //         (response) => response.ok ? 'ok' : 'error',
+        //         {
+        //             ok: new FetchResponseStream<any>()
+        //                 .extractText().map((data) => data.substr(0, 10)),
+        //             error: new Stream<any>()
+        //                 .map((data) => 'not ok')
+        //         }
+        //     );
         //
-        //ms.sum().average().mul().sqrt().subscribe((data) => {
-        //    console.log(`data: ${data}`);
-        //}, (err) => {
-        //    console.error(err);
-        //});
-        //
-        //ms.emit(1);
-        //ms.emit(2);
-        //ms.emit(3);
-        //ms.emit(4);
-        //ms.emit(5);
+        // fs.subscribe((data) => {
+        //     console.log(data);
+        // }, (err) => {
+        //     console.error(err);
+        // });
+
+        const ms = new MathStream();
+        let ii = 0;
+
+        ms.complex()
+            .min()
+            .subscribe((data) => {
+               //console.log(`data: ${ii ++}`);
+            }, (err) => {
+               console.error(err);
+            });
+
+        start();
+
+        for (let i = 0; i < 1000000; i ++) {
+            ms.emit(i);
+        }
+        ms.emit(1);
+        ms.emit(2);
+        ms.emit(3);
+        ms.emit(4);
+        ms.emit(5);
+
+        stop('ok', 1000000);
 
         // const s1 = new Stream<any>().map((data: any) => "11");
         // const s2 = new Stream<any>().map((data: any) => "22");

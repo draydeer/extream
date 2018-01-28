@@ -19,6 +19,13 @@ var Subscriber = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Object.defineProperty(Subscriber.prototype, "isIsolated", {
+        get: function () {
+            return this._isIsolated === true;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Subscriber.prototype, "stream", {
         get: function () {
             return this._stream;
@@ -26,6 +33,10 @@ var Subscriber = /** @class */ (function () {
         enumerable: true,
         configurable: true
     });
+    Subscriber.prototype.isolated = function () {
+        this._isIsolated = true;
+        return this;
+    };
     Subscriber.prototype.unsubscribe = function () {
         if (this._stream) {
             var stream = this._stream;

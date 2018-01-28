@@ -1,6 +1,7 @@
 import {Stream} from "../stream";
 import {w3cwebsocket as WebSocketClient} from "websocket";
 import {StreamInterface} from "../interfaces/stream_interface";
+import {SubscriberInterface} from '../interfaces/subscriber_interface';
 
 export class WebsocketW3CWebsocketStream<T> extends Stream<T> {
 
@@ -12,7 +13,7 @@ export class WebsocketW3CWebsocketStream<T> extends Stream<T> {
         this.init(url);
     }
 
-    public emit(data: T): this {
+    public emit(data: T, subscribers?: SubscriberInterface<T>[]): this {
         if (this._client.readyState === this._client.OPEN) {
             this._client.send(String(data));
         }

@@ -1,6 +1,7 @@
 import * as fetch from "node-fetch";
 import {StreamInterface} from '../interfaces/stream_interface';
 import {Stream} from "../stream";
+import {SubscriberInterface} from '../interfaces/subscriber_interface';
 
 export interface FetchStreamInterface<T> extends StreamInterface<T> {
     extractBlob(): this;
@@ -27,10 +28,6 @@ export class FetchResponseStream<T> extends Stream<T> implements FetchStreamInte
 
     public extractText() {
         return this._middlewareAdd((data: any, stream) => data.text());
-    }
-
-    public emit(options?: any): this {
-        return super.emit(options);
     }
 
 }
@@ -69,14 +66,14 @@ export class FetchStream<T> extends FetchResponseStream<T> {
         return new FetchResponseStream<T>() as this;
     }
 
-    public emit(options?: any): this {
+    public emit(options?: any, subscribers?: SubscriberInterface<T>[]): this {
         options = Object.assign({}, this._options, options);
 
         if (options.method === void 0) {
             options.method = 'GET';
         }
 
-        this._request(this._url, options);
+        this._request(this._url, options, subscribers);
 
         return this;
     }
@@ -105,9 +102,9 @@ export class FetchStream<T> extends FetchResponseStream<T> {
         return this.emit(options ? Object.assign(options, {body, method: 'PUT'}) : {body, method: 'PUT'});
     }
 
-    protected _request(url: string, options?: any) {
+    protected _request(url: string, options?: any, subscribers?: SubscriberInterface<T>[]) {
         return fetch(url, Object.assign(options || {}, this._options)).then((response) => {
-            super.emit(response);
+            super.emit(response, subscribers);
         }).catch((error) => {
             this.error(error);
         });

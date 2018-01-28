@@ -36,9 +36,34 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
-var stream_1 = require("./stream");
-var fetch_stream_1 = require("./extra/fetch_stream");
-var fetch_stream_2 = require("./extra/fetch_stream");
+var math_stream_1 = require("./extra/math_stream");
+var time, timeSpentNew, timeSpentOld;
+function percent() {
+    console.log('==============================');
+    if (timeSpentOld < timeSpentNew) {
+        console.log((timeSpentNew / timeSpentOld * 100 - 100) + '% faster');
+    }
+    else {
+        console.log((timeSpentOld / timeSpentNew * 100 - 100) + '% slower');
+    }
+    console.log('==============================');
+    console.log();
+}
+function start() {
+    time = new Date().getTime();
+}
+function stop(title, ops) {
+    timeSpentOld = timeSpentNew;
+    timeSpentNew = new Date().getTime() - time;
+    console.log('------------------------------');
+    console.info(title);
+    console.log();
+    console.log('Total ops.: ' + ops);
+    console.log('Time spent: ' + timeSpentNew + ' ms');
+    console.log('Ops. per second: ' + (1000 / timeSpentNew * ops));
+    console.log('Time per single op.: ' + (timeSpentNew / ops) + ' ms');
+    console.log();
+}
 //const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
@@ -77,34 +102,28 @@ var fetch_stream_2 = require("./extra/fetch_stream");
 //    w.emit("3");
 //}, 3000);
 (function () { return __awaiter(_this, void 0, void 0, function () {
-    var fs;
+    var ms, ii, i;
     return __generator(this, function (_a) {
         try {
-            fs = fetch_stream_1.FetchStream.get('https://google.com', 'test')
-                .select(function (response) { return response.ok ? 'ok' : 'error'; }, {
-                ok: new fetch_stream_2.FetchResponseStream()
-                    .extractText().map(function (data) { return data.substr(0, 10); }),
-                error: new stream_1.Stream()
-                    .map(function (data) { return 'not ok'; })
-            });
-            fs.subscribe(function (data) {
-                console.log(data);
+            ms = new math_stream_1.MathStream();
+            ii = 0;
+            ms.complex()
+                .min()
+                .subscribe(function (data) {
+                //console.log(`data: ${ii ++}`);
             }, function (err) {
                 console.error(err);
             });
-            //const ms = new MathStream();
-            //
-            //ms.sum().average().mul().sqrt().subscribe((data) => {
-            //    console.log(`data: ${data}`);
-            //}, (err) => {
-            //    console.error(err);
-            //});
-            //
-            //ms.emit(1);
-            //ms.emit(2);
-            //ms.emit(3);
-            //ms.emit(4);
-            //ms.emit(5);
+            start();
+            for (i = 0; i < 1000000; i++) {
+                ms.emit(i);
+            }
+            ms.emit(1);
+            ms.emit(2);
+            ms.emit(3);
+            ms.emit(4);
+            ms.emit(5);
+            stop('ok', 1000000);
             // const s1 = new Stream<any>().map((data: any) => "11");
             // const s2 = new Stream<any>().map((data: any) => "22");
             // const s3 = new Stream<any>().map((data: any) => "33");

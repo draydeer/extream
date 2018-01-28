@@ -2,14 +2,14 @@ import {SubscriberInterface} from "./subscriber_interface";
 import {OnComplete, OnData, OnError} from "../types";
 
 export interface StreamInterface<T> {
-    readonly root: this;
     readonly clone: this;
+    readonly root: this;
 
     complete(): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
     dispatch(): this;
-    emit(data: T): this;
-    emitAndComplete(data: T): this;
+    emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
+    emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
     error(error: any): this;
     exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
     filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this;
