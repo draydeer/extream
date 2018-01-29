@@ -1,8 +1,6 @@
 import { Stream } from "../stream";
 export declare class MathStream extends Stream<number> {
     protected _accumulator: number;
-    protected _max: number;
-    protected _min: number;
     constructor(_accumulator?: number);
     readonly compatible: this;
     abs(): this;

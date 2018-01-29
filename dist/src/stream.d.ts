@@ -6,7 +6,6 @@ import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
-    protected _emitLoopPromise: Promise<T>;
     protected _isEmptyLastValue: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -18,10 +17,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _root: StreamInterface<T>;
-    protected _subscribers: {
-        [key: string]: SubscriberInterface<T>;
-    };
-    protected _subscribersCount: number;
+    protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number;
     static readonly COMPLETED: Error;
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
@@ -80,4 +76,11 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _subscriberOnError(error: any, subscribers?: SubscriberInterface<T>[]): this;
     protected onSubscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected onSubscriberRemove(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
+}
+export declare class Storage<T> {
+    removed: number;
+    storage: T[];
+    constructor(size?: number);
+    add(value: T): T;
+    delete(value: T): T;
 }

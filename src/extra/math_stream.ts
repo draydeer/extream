@@ -2,9 +2,6 @@ import {Stream} from "../stream";
 
 export class MathStream extends Stream<number> {
 
-    protected _max: number;
-    protected _min: number;
-
     public constructor(protected _accumulator: number = 0) {
         super();
     }
@@ -22,31 +19,43 @@ export class MathStream extends Stream<number> {
     }
 
     public max(): this {
-        return this._middlewareAdd((data: number) => {
-            this._max = this._max === void 0 ? data : (this._max > data ? this._max : data);
+        let max;
 
-            return this._max;
+        return this._middlewareAdd((data: number) => {
+            max = max === void 0 ? data : (max > data ? max : data);
+
+            return max;
         });
     }
 
     public min(): this {
-        return this._middlewareAdd((data: number) => {
-            this._min = this._min === void 0 ? data : (this._min < data ? this._min : data);
+        let min;
 
-            return this._min;
+        return this._middlewareAdd((data: number) => {
+            min = min === void 0 ? data : (min < data ? min : data);
+
+            return min;
         });
     }
 
     public reduce(reducer: (accumulator: number, data: number, count?: number) => number): this {
+        let accumulator = this._accumulator;
+
         return this._middlewareAdd((data: number) => {
-            this._accumulator = reducer(this._accumulator, data, this._transmittedCount + 1);
+            accumulator = reducer(accumulator, data, this._transmittedCount + 1);
 
             return this._accumulator;
         });
     }
 
     public mul(): this {
-        return this._middlewareAdd((data: number) => this._accumulator = (this._accumulator || 1) * data);
+        let accumulator = this._accumulator || 1;
+
+        return this._middlewareAdd((data: number) => {
+            accumulator *= data;
+
+            return accumulator;
+        });
     }
 
     public sqrt(): this {
@@ -54,7 +63,13 @@ export class MathStream extends Stream<number> {
     }
 
     public sum(): this {
-        return this._middlewareAdd((data: number) => this._accumulator += data);
+        let accumulator = this._accumulator;
+
+        return this._middlewareAdd((data: number) => {
+            accumulator += data;
+
+            return accumulator;
+        });
     }
 
 }

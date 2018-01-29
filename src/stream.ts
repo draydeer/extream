@@ -11,7 +11,6 @@ import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
  */
 export class Stream<T> implements StreamInterface<T> {
 
-    protected _emitLoopPromise: Promise<T>;
     protected _isEmptyLastValue: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -23,8 +22,7 @@ export class Stream<T> implements StreamInterface<T> {
     protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _root: StreamInterface<T>;
-    protected _subscribers: {[key: string]: SubscriberInterface<T>} = {};
-    protected _subscribersCount: number = 0;
+    protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number = 0;
 
     public static get COMPLETED(): Error {
@@ -76,7 +74,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public get subscribersCount(): number {
-        return this._subscribersCount;
+        return this._subscribers ? this._subscribers.storage.length : 0;
     }
 
     public get transmittedCount(): number {
@@ -423,25 +421,21 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
-        if (false === subscriber.id in this._subscribers) {
-            subscriber = this.onSubscriberAdd(subscriber);
-
-            this._subscribers[subscriber.id] = subscriber;
-
-            this._subscribersCount ++;
+        if (! this._subscribers) {
+            this._subscribers = new Storage();
         }
+
+        this._subscribers.add(this.onSubscriberAdd(subscriber));
 
         return subscriber;
     }
 
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this {
-        if (subscriber.id in this._subscribers) {
-            subscriber = this.onSubscriberRemove(subscriber).unsubscribe();
-
-            delete this._subscribers[subscriber.id];
-
-            this._subscribersCount --;
+        if (! this._subscribers) {
+           return this;
         }
+
+        this._subscribers.delete(this.onSubscriberRemove(subscriber));
 
         return this;
     }
@@ -451,13 +445,9 @@ export class Stream<T> implements StreamInterface<T> {
             for (const subscriber of subscribers) {
                 subscriber.doComplete();
             }
-        } else {
-            for (const subscriberId of (<any>Object).keys(this._subscribers)) {
-                const subscriber = this._subscribers[subscriberId];
-
-                if (! subscriber.isIsolated) {
-                    this._subscribers[subscriberId].doComplete();
-                }
+        } else if (this._subscribers) {
+            for (const subscriber of this._subscribers.storage) {
+                subscriber.doComplete();
             }
         }
 
@@ -469,13 +459,9 @@ export class Stream<T> implements StreamInterface<T> {
             for (const subscriber of subscribers) {
                 subscriber.doData(data);
             }
-        } else {
-            for (const subscriberId of (<any>Object).keys(this._subscribers)) {
-                const subscriber = this._subscribers[subscriberId];
-
-                //if (! subscriber.isIsolated) {
-                    subscriber.doData(data);
-                //}
+        } else if (this._subscribers) {
+            for (const subscriber of this._subscribers.storage) {
+                subscriber.doData(data);
             }
         }
 
@@ -487,13 +473,9 @@ export class Stream<T> implements StreamInterface<T> {
             for (const subscriber of subscribers) {
                 subscriber.doError(error);
             }
-        } else {
-            for (const subscriberId of (<any>Object).keys(this._subscribers)) {
-                const subscriber = this._subscribers[subscriberId];
-
-                if (! subscriber.isIsolated) {
-                    this._subscribers[subscriberId].doError(error);
-                }
+        } else if (this._subscribers) {
+            for (const subscriber of this._subscribers.storage) {
+                subscriber.doError(error);
             }
         }
 
@@ -506,6 +488,41 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected onSubscriberRemove(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
         return subscriber;
+    }
+
+}
+
+export class Storage<T> {
+
+    public removed: number = 0;
+    public storage: T[];
+
+    public constructor(size: number = 0) {
+        this.storage = size > 0 ? new Array(size) : [];
+    }
+
+    public add(value: T) {
+        if (this.removed >= this.storage.length >> 1) {
+            this.storage[this.storage.indexOf(null)] = value;
+
+            this.removed --;
+        } else {
+            this.storage.push(value);
+        }
+
+        return value;
+    }
+
+    public delete(value: T) {
+        const i = this.storage.indexOf(value);
+
+        if (i !== - 1) {
+            this.storage[i] = null;
+
+            this.removed ++;
+        }
+
+        return value;
     }
 
 }

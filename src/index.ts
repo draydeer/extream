@@ -82,51 +82,49 @@ function stop(title, ops) {
 
 (async () => {
     try {
-        // const select = {
-        //     ok: new FetchResponseStream<any>()
-        //         .extractText().map((data) => data.substr(0, 10)),
-        //     error: new Stream<any>()
-        //         .map((data) => 'not ok')
-        // };
+         const select = {
+             ok: new FetchResponseStream<any>()
+                 .extractText().map((data) => data.substr(0, 10)),
+             error: new Stream<any>()
+                 .map((data) => 'not ok')
+         };
+
+          const fs = FetchStream.get<any>('https://google.com', 'test')
+             .select((response) => response.ok ? 'ok' : 'error', select);
+
+          fs.subscribe((data) => {
+             console.log(data);
+          }, (err) => {
+             console.error('error', err);
+          });
+
+        //const ms = new MathStream();
         //
-        //  const fs = FetchStream.get<any>('https://google.com', 'test')
-        //     //.map((response) => response.ok
-        //     //    ? new FetchResponseStream<any>().progressive().extractText().map((data) => data.substr(0, 10))
-        //     //    : new Stream<any>().progressive().map((data) => 'not ok')
-        //     //)
-        //     .select((response) => response.ok ? 'ok' : 'error', select);
+        //ms
+        //    .progressive()
+        //    .sum()
+        //    .average()
+        //    .subscribe((data) => {
+        //       //console.log(`data: ${data}`);
+        //    }, (err) => {
+        //       console.error(err);
+        //    });
+        //;
         //
-        //  fs.subscribe((data) => {
-        //     console.log(data);
-        //  }, (err) => {
-        //     console.error('error', err);
-        //  });
-
-        const ms = new MathStream();
-
-        ms.progressive()
-            .sum()
-            // .average()
-            .subscribe((data) => {
-               //console.log(`data: ${data}`);
-            }, (err) => {
-               console.error(err);
-            });
-
-        start();
-
-        for (let i = 0; i < 1000000; i ++) {
-            ms.emit(i);
-        }
-        ms.emit(1);
-        ms.emit(2);
-        ms.emit(3);
-        ms.emit(4);
-        ms.emit(5);
-
-        stop('ok', 1000000);
-
-        ms.prebuffer(5);
+        //start();
+        //
+        //for (let i = 0; i < 1000000; i ++) {
+        //    ms.emit(i);
+        //}
+        //ms.emit(1);
+        //ms.emit(2);
+        //ms.emit(3);
+        //ms.emit(4);
+        //ms.emit(5);
+        //
+        //stop('ok', 1000000);
+        //
+        //ms.prebuffer(5);
 
         // start();
         //
