@@ -104,3 +104,62 @@ export class Subscriber<T> implements SubscriberInterface<T> {
     }
 
 }
+
+/**
+ * Subscriber.
+ */
+export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
+
+    protected _id: string;
+    protected _isIsolated: boolean;
+    protected _middleware;
+    protected _stream: StreamInterface<T>;
+
+    public doComplete: OnComplete;
+    public doData: OnData<T>;
+    public doError: OnError;
+
+    public get id() {
+        return this._id;
+    }
+
+    public get isIsolated() {
+        return this._isIsolated === true;
+    }
+
+    public get stream(): StreamInterface<T> {
+        return this._stream;
+    }
+
+    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete) {
+        this._id = String(ID ++);
+        this._stream = stream;
+
+        this.doComplete = onComplete;
+        this.doError = onError;
+        this.doData = onData;
+    }
+
+    public isolated(): this {
+        this._isIsolated = true;
+
+        return this;
+    }
+
+    public unsubscribe(): this {
+        if (this._stream) {
+            const stream = this._stream;
+
+            this._middleware = this._stream = null;
+
+            stream.unsubscribe(this);
+        }
+
+        return this;
+    }
+
+    public once(): this {
+        return this;
+    }
+
+}

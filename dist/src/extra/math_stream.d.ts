@@ -4,7 +4,7 @@ export declare class MathStream extends Stream<number> {
     protected _max: number;
     protected _min: number;
     constructor(_accumulator?: number);
-    readonly clone: this;
+    readonly compatible: this;
     abs(): this;
     average(): this;
     max(): this;

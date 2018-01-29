@@ -9,7 +9,7 @@ export class MathStream extends Stream<number> {
         super();
     }
 
-    public get clone(): this {
+    public get compatible(): this {
         return new MathStream() as this;
     }
 

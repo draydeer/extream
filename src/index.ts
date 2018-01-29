@@ -82,32 +82,31 @@ function stop(title, ops) {
 
 (async () => {
     try {
-         //const fs = FetchStream.get<any>('https://google.com', 'test')
-         //    //.map((response) => response.ok
-         //    //    ? new FetchResponseStream<any>().complex().extractText().map((data) => data.substr(0, 10))
-         //    //    : new Stream<any>().complex().map((data) => 'not ok')
-         //    //)
-         //    .select(
-         //        (response) => response.ok ? 'ok' : 'error',
-         //        {
-         //            ok: new FetchResponseStream<any>()
-         //                .extractText().map((data) => data.substr(0, 10)),
-         //            error: new Stream<any>()
-         //                .map((data) => 'not ok')
-         //        }
-         //    );
-         //
-         //fs.subscribe((data) => {
-         //    console.log(data);
-         //}, (err) => {
-         //    console.error(err);
-         //});
+        // const select = {
+        //     ok: new FetchResponseStream<any>()
+        //         .extractText().map((data) => data.substr(0, 10)),
+        //     error: new Stream<any>()
+        //         .map((data) => 'not ok')
+        // };
+        //
+        //  const fs = FetchStream.get<any>('https://google.com', 'test')
+        //     //.map((response) => response.ok
+        //     //    ? new FetchResponseStream<any>().progressive().extractText().map((data) => data.substr(0, 10))
+        //     //    : new Stream<any>().progressive().map((data) => 'not ok')
+        //     //)
+        //     .select((response) => response.ok ? 'ok' : 'error', select);
+        //
+        //  fs.subscribe((data) => {
+        //     console.log(data);
+        //  }, (err) => {
+        //     console.error('error', err);
+        //  });
 
         const ms = new MathStream();
-        let ii = 0;
 
-        ms//.complex()
-            .min()
+        ms.progressive()
+            .sum()
+            // .average()
             .subscribe((data) => {
                //console.log(`data: ${data}`);
             }, (err) => {
@@ -126,6 +125,19 @@ function stop(title, ops) {
         ms.emit(5);
 
         stop('ok', 1000000);
+
+        ms.prebuffer(5);
+
+        // start();
+        //
+        // const st = new Stream();
+        // const s2 = st.debug((data) => data).debug((data) => data);
+        //
+        // for (let i = 0; i < 1000000; i ++) {
+        //     st.emit(i);
+        // }
+        //
+        // stop('ok', 1000000);
 
         // const s1 = new Stream<any>().map((data: any) => "11");
         // const s2 = new Stream<any>().map((data: any) => "22");

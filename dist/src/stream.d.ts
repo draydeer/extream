@@ -8,9 +8,10 @@ import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
 export declare class Stream<T> implements StreamInterface<T> {
     protected _emitLoopPromise: Promise<T>;
     protected _isEmptyLastValue: boolean;
-    protected _isComplex: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
+    protected _isProgressive: boolean;
+    protected _isSynchronized: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
@@ -26,7 +27,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
-    readonly clone: this;
+    readonly compatible: this;
     readonly isPaused: boolean;
     readonly lastValue: T;
     readonly root: this;
@@ -34,7 +35,6 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly transmittedCount: number;
     setRoot(stream: StreamInterface<T>): this;
     complete(): this;
-    complex(): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
     error(error: any): this;
@@ -43,8 +43,9 @@ export declare class Stream<T> implements StreamInterface<T> {
     pause(): this;
     postbuffer(size?: number): this;
     prebuffer(size?: number): this;
+    progressive(): this;
     resume(): this;
-    simple(): this;
+    synchronized(): this;
     subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
@@ -56,6 +57,9 @@ export declare class Stream<T> implements StreamInterface<T> {
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;
     map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
+    redirect(selector: (data: T) => string, streams: {
+        [key: string]: StreamInterface<T>;
+    }): this;
     select(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
     }): this;
@@ -66,10 +70,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     toCompletionPromise(): Promise<T>;
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;
-    protected _complete(): this;
-    protected _emit(data: T, subscribers?: SubscriberInterface<T>[]): void;
-    protected _emitLoop(d: any, s: any, i: any, e?: any): void;
-    protected _emitLoop1(prebuffer: any): T;
+    protected _emitLoop(subscribers: any, middlewareIndex: any, cb: any, data: any): any;
     protected _middlewareAdd(middleware: StreamMiddleware<T>): this;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;

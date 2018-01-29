@@ -62,7 +62,7 @@ export class FetchStream<T> extends FetchResponseStream<T> {
         super();
     }
 
-    public get clone(): this {
+    public get compatible(): this {
         return new FetchResponseStream<T>() as this;
     }
 

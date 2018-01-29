@@ -1,8 +1,10 @@
 {
     "compilerOptions": {
         "emitDecoratorMetadata": false,
+        "inlineSourceMap": true,
         "module": "commonjs",
         "outDir": "dist",
+        "sourceMap": false,
         "target": "ES5",
         "typeRoots": [
             "node_modules/@types"

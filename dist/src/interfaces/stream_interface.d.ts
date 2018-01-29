@@ -1,7 +1,7 @@
 import { SubscriberInterface } from "./subscriber_interface";
 import { OnComplete, OnData, OnError } from "../types";
 export interface StreamInterface<T> {
-    readonly clone: this;
+    readonly compatible: this;
     readonly root: this;
     complete(): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
@@ -14,6 +14,10 @@ export interface StreamInterface<T> {
     first(): this;
     fork(): this;
     pause(): this;
+    progressive(): this;
+    redirect(selector: (data: T) => string, streams: {
+        [key: string]: StreamInterface<T>;
+    }): this;
     resume(): this;
     select(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
@@ -22,6 +26,7 @@ export interface StreamInterface<T> {
     subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
+    synchronized(): this;
     toCompletionPromise(): Promise<T>;
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;

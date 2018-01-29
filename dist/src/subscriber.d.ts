@@ -24,3 +24,22 @@ export declare class Subscriber<T> implements SubscriberInterface<T> {
     doError(error: any): this;
     protected _processMiddleware(data?: T): T;
 }
+/**
+ * Subscriber.
+ */
+export declare class UnsafeSubscriber<T> implements SubscriberInterface<T> {
+    protected _id: string;
+    protected _isIsolated: boolean;
+    protected _middleware: any;
+    protected _stream: StreamInterface<T>;
+    doComplete: OnComplete;
+    doData: OnData<T>;
+    doError: OnError;
+    readonly id: string;
+    readonly isIsolated: boolean;
+    readonly stream: StreamInterface<T>;
+    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete);
+    isolated(): this;
+    unsubscribe(): this;
+    once(): this;
+}
