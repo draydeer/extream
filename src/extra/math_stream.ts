@@ -54,18 +54,8 @@ export class MathStream extends Stream<number> {
         });
     }
 
-    public reduce(reducer: (accumulator: number, data: number, count?: number) => number): this {
-        let accumulator = this._accumulator;
-
-        return this._middlewareAdd((data: number) => {
-            accumulator = reducer(accumulator, data, this._transmittedCount + 1);
-
-            return accumulator;
-        });
-    }
-
-    public mul(): this {
-        let accumulator = this._accumulator || 1;
+    public mul(accumulator?: number): this {
+        accumulator = accumulator || this._accumulator || 1;
 
         return this._middlewareAdd((data: number) => {
             accumulator *= data;
@@ -86,8 +76,8 @@ export class MathStream extends Stream<number> {
         return this._middlewareAdd(Math.sqrt);
     }
 
-    public sum(): this {
-        let accumulator = this._accumulator;
+    public sum(accumulator?: number): this {
+        accumulator = accumulator || this._accumulator || 0;
 
         return this._middlewareAdd((data: number) => {
             accumulator += data;

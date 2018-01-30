@@ -83,33 +83,33 @@ function stop(title, ops) {
 
 (async () => {
     try {
-         // const select = {
-         //     ok: new FetchResponseStream<any>()
-         //         .extractText().debug((data) => {
-         //             const t = 5;
-         //         }).map((data) => data.substr(0, 10)),
-         //     error: new Stream<any>()
-         //         .map((data) => 'not ok')
-         // };
-         //
-         //  const fs = FetchStream.get<any>('https://google.com', 'test')
-         //     .select((response) => response.ok ? 'ok' : 'error', select);
-         //
-         //  fs.subscribe((data) => {
-         //     console.log(data);
-         //  }, (err) => {
-         //     console.error('error', err);
-         //  });
+          const select = {
+              ok: new FetchResponseStream<any>()
+                  .extractText().debug((data) => {
+                      const t = 5;
+                  }).map((data) => data.substr(0, 10)),
+              error: new Stream<any>()
+                  .map((data) => 'not ok')
+          };
 
-        const gg = new FetchResponseStream<any>().debug((data) => {
-            const g = 5;
-        }).map((data) => Promise.resolve(data * 2)).debug((data) => {
-            const g = 5;
-        });
+           const fs = FetchStream.get<any>('https://google.com', 'test')
+              .select((response) => response.ok ? 'ok' : 'error', select);
 
-        gg.subscribe((data) => console.log(data));
+           fs.subscribe((data) => {
+              console.log(data);
+           }, (err) => {
+              console.error('error', err);
+           });
 
-        gg.root.emit(1);
+        //const gg = new FetchResponseStream<any>().debug((data) => {
+        //    const g = 5;
+        //}).map((data) => Promise.resolve(data * 2)).debug((data) => {
+        //    const g = 5;
+        //});
+        //
+        //gg.subscribe((data) => console.log(data));
+        //
+        //gg.root.emit(1);
 
         // const ms = new MathStream();
         //
@@ -119,54 +119,77 @@ function stop(title, ops) {
         // ms.emit(2);
         // ms.emit(3);
 
-        // const stor = new Storage();
-        //
-        // start();
-        //
-        // for (let j = 0; j < 1000000; j ++) {
-        //     for (let i = 0; i < 10; i++) {
-        //         stor.add(i);
-        //     }
-        //
-        //     for (let i = 3; i < 9; i++) {
-        //         stor.delete(i);
-        //     }
-        // }
-        //
-        // stop('ok', 1000000);
-        //
-        // console.log(stor);
+         //const stor = new Storage();
+         //
+         //start();
+         //
+         //for (let j = 0; j < 1000000; j ++) {
+         //    for (let i = 0; i < 10; i++) {
+         //        stor.add(i);
+         //    }
+         //
+         //    for (let i = 3; i < 9; i++) {
+         //        stor.delete(i);
+         //    }
+         //}
+         //
+         //stop('ok', 1000000);
+         //
+         //console.log(stor);
 
-        // const ms = new MathStream();
+        //const s2 = new Stream<string>()
+        //    .progressive()
+        //    .reduce((a, d) => a + d, '')
+        //    .debounce(.25)
+        //    .map((d) => ':' + d + ':')
+        //    .filter(':12345:');
         //
-        // ms
-        //     .progressive()
-        //     .sum()
-        //     .average()
-        //     // .sqrt()
-        //     // .round()
-        //     .subscribe((data) => {
-        //         //console.log(`data: ${data}`);
-        //     }, (err) => {
-        //         console.error(err);
-        //     });
-        // ;
+        //s2.subscribe((data) => console.log(data));
         //
-        // start();
+        //const pause = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
         //
-        // for (let i = 0; i < 10000000; i ++) {
-        //    ms.emit(i);
-        // }
+        //s2.emit('1');
+        //s2.emit('2');
         //
-        // ms.prebuffer(5);
+        //await pause(0.5);
         //
-        // ms.emit(1);
-        // ms.emit(2);
-        // ms.emit(3);
-        // ms.emit(4);
-        // ms.emit(5);
+        //s2.emit('3');
+        //s2.emit('4');
         //
-        // stop('ok', 10000000);
+        //await pause(0.5);
+        //
+        //s2.emit('5');
+
+         //const ms = new MathStream();
+         //
+         //ms
+         //    .progressive()
+         //    .sum()
+         //    .average()
+         //    // .sqrt()
+         //    // .round()
+         //    .subscribe((data) => {
+         //        //console.log(`data: ${data}`);
+         //    }, (err) => {
+         //        console.error(err);
+         //    });
+         //;
+         //
+         //start();
+         //
+         //for (let i = 0; i < 10000000; i ++) {
+         //   ms.emit(i);
+         //}
+         //
+         //ms.prebuffer(5);
+         //
+         //ms.emit(1);
+         //ms.emit(2);
+         //ms.emit(3);
+         //ms.emit(4);
+         //ms.emit(5);
+         //
+         //stop('ok', 10000000);
 
         // start();
         //

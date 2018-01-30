@@ -8,6 +8,7 @@ export interface FetchStreamInterface<T> extends StreamInterface<T> {
     extractText(): this;
 }
 export declare class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
+    readonly compatible: this;
     extractBlob(): this;
     extractFormData(): this;
     extractJson(): this;
@@ -23,7 +24,6 @@ export declare class FetchStream<T> extends FetchResponseStream<T> {
     static post<T>(url: string, data: T, _options?: any): FetchStream<T>;
     static put<T>(url: string, data: T, _options?: any): FetchStream<T>;
     constructor(_url: string, _options?: any);
-    readonly compatible: this;
     emit(options?: any, subscribers?: SubscriberInterface<T>[]): this;
     delete<T>(options?: any): this;
     get<T>(options?: any): this;

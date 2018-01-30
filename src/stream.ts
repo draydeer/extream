@@ -6,6 +6,7 @@ import {SubscriberInterface} from "./interfaces/subscriber_interface";
 import {Storage} from './storage';
 import {Subscriber, UnsafeSubscriber} from "./subscriber";
 import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
+import {PromiseOrT} from "./types";
 
 /**
  * Stream.
@@ -206,6 +207,24 @@ export class Stream<T> implements StreamInterface<T> {
 
     // middlewares
 
+    /** Continues processing after expiration of  */
+    public debounce(seconds: number): this {
+        let nextMoment;
+
+        return this._middlewareAdd((data) => {
+            const moment = Date.now();
+
+            if (nextMoment === void 0 || nextMoment <= moment) {
+                nextMoment = moment + seconds * 1000;
+
+                return data;
+            }
+
+            return CANCELLED;
+        });
+    }
+
+    /** Runs debug callback then returns incoming data as is */
     public debug(callback: (data: T, stream?: StreamInterface<T>) => void): this {
         return this._middlewareAdd((data) => {
             callback(data);
@@ -214,16 +233,7 @@ export class Stream<T> implements StreamInterface<T> {
         });
     }
 
-    /** Emits data after delay */
-    public delay(milliseconds: number): this {
-        return this._middlewareAdd((data) => new Promise<T>(
-            (resolve) => setTimeout(
-                () => resolve(data), milliseconds
-            )
-        ));
-    }
-
-    /** Dispatches data to subscribers ahead of next middlewares then return income data as is */
+    /** Dispatches data to subscribers ahead of processing by remained middlewares */
     public dispatch(): this {
         return this._middlewareAdd((data) => {
             this._subscriberOnData(data);
@@ -233,7 +243,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     /** Executes custom handler over data then returns result value or income data as is if returned value is undefined */
-    public exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
+    public exec(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this {
         return this._middlewareAdd((data, stream) => {
             let result = middleware(data, stream);
 
@@ -241,7 +251,7 @@ export class Stream<T> implements StreamInterface<T> {
         });
     }
 
-    /** Filters data applying custom handler that returns boolean or comparing with initial value */
+    /** Filters data comparing with initial value or by applying custom handler that returns boolean */
     public filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this {
         return this._middlewareAdd(
             middleware instanceof Function
@@ -250,6 +260,7 @@ export class Stream<T> implements StreamInterface<T> {
         );
     }
 
+    /** Completes after first value received */
     public first(): this {
         this._middlewareAfterDispatchAdd((data) => {
             this.complete();
@@ -260,11 +271,12 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
+    /** Maps data by replacing by initial value or by applying custom handler */
+    public map(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this {
         return this._middlewareAdd(middleware);
     }
 
-    /** Redirects data to selected stream cancelling processing in current */
+    /** Redirects data to selected stream */
     public redirect(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this {
         return this._middlewareAdd((data: T) => {
             const index = selector(data);
@@ -276,6 +288,14 @@ export class Stream<T> implements StreamInterface<T> {
             }
 
             throw new Error(`"redirect" middleware got invalid index from selector: ${index}`);
+        });
+    }
+
+    public reduce(reducer: (accumulator: T, data: T, count?: number) => T, accumulator: T): this {
+        return this._middlewareAdd((data: T) => {
+            accumulator = reducer(accumulator, data, this._transmittedCount);
+
+            return accumulator;
         });
     }
 

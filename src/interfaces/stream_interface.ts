@@ -1,23 +1,25 @@
 import {SubscriberInterface} from "./subscriber_interface";
-import {OnComplete, OnData, OnError} from "../types";
+import {OnComplete, OnData, OnError, PromiseOrT} from "../types";
 
 export interface StreamInterface<T> {
     readonly compatible: this;
     readonly root: this;
 
     complete(): this;
+    debounce(seconds: number): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
     dispatch(): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
     error(error: any): this;
-    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
+    exec(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this;
     filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;
     fork(): this;
     pause(): this;
     progressive(): this;
     redirect(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this;
+    reduce(reducer: (accumulator: T, data: T, count?: number) => PromiseOrT<T>, accumulator: T): this;
     resume(): this;
     select(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this;
     setRoot(stream: StreamInterface<T>): this;

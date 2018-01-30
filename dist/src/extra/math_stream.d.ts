@@ -11,10 +11,9 @@ export declare class MathStream extends Stream<number> {
     log(): this;
     max(): this;
     min(): this;
-    reduce(reducer: (accumulator: number, data: number, count?: number) => number): this;
-    mul(): this;
+    mul(accumulator?: number): this;
     round(): this;
     sin(): this;
     sqrt(): this;
-    sum(): this;
+    sum(accumulator?: number): this;
 }

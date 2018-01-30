@@ -1,7 +1,7 @@
 export class Storage<T> {
 
+    public deletedCount: number = 0;
     public lastScanIndex: number = 0;
-    public removed: number = 0;
     public storage: T[];
 
     public constructor(size: number = 0) {
@@ -9,17 +9,17 @@ export class Storage<T> {
     }
 
     public add(value: T) {
-        if (this.storage.length > 4 && this.removed) {
-            if (this.removed >= this.storage.length >> 1) {
-                this.lastScanIndex = this.removed = 0;
+        if (this.storage.length > 4 && this.deletedCount) {
+            if (this.deletedCount >= this.storage.length >> 1) {
+                this.lastScanIndex = this.deletedCount = 0;
 
                 this.storage = this.storage.filter(this._filter);
-            } else if (this.removed >= this.storage.length >> 2) {
+            } else if (this.deletedCount >= this.storage.length >> 2) {
                 this.lastScanIndex = this.storage.indexOf(null, this.lastScanIndex);
 
                 this.storage[this.lastScanIndex] = value;
 
-                this.removed --;
+                this.deletedCount --;
             }
         } else {
             this.storage.push(value);
@@ -28,17 +28,21 @@ export class Storage<T> {
         return value;
     }
 
+    public addUnique(value: T) {
+        return this.storage.indexOf(value) === - 1 ? this.add(value) : value;
+    }
+
     public clear() {
+        this.deletedCount = 0;
         this.lastScanIndex = 0;
-        this.removed = 0;
         this.storage = [];
 
         return this;
     }
 
     public delete(value: T) {
-        if (this.storage.length > 4 && this.removed && this.removed >= this.storage.length >> 1) {
-            this.lastScanIndex = this.removed = 0;
+        if (this.storage.length > 4 && this.deletedCount && this.deletedCount >= this.storage.length >> 1) {
+            this.lastScanIndex = this.deletedCount = 0;
 
             this.storage = this.storage.filter(this._filter);
         }
@@ -50,7 +54,7 @@ export class Storage<T> {
 
             this.storage[i] = null;
 
-            this.removed ++;
+            this.deletedCount ++;
         }
 
         return value;

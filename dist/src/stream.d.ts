@@ -3,6 +3,7 @@ import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
 import { Storage } from './storage';
 import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
+import { PromiseOrT } from "./types";
 /**
  * Stream.
  */
@@ -47,21 +48,25 @@ export declare class Stream<T> implements StreamInterface<T> {
     subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
+    /** Continues processing after expiration of  */
+    debounce(seconds: number): this;
+    /** Runs debug callback then returns incoming data as is */
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
-    /** Emits data after delay */
-    delay(milliseconds: number): this;
-    /** Dispatches data to subscribers ahead of next middlewares then return income data as is */
+    /** Dispatches data to subscribers ahead of processing by remained middlewares */
     dispatch(): this;
     /** Executes custom handler over data then returns result value or income data as is if returned value is undefined */
-    exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
-    /** Filters data applying custom handler that returns boolean or comparing with initial value */
+    exec(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this;
+    /** Filters data comparing with initial value or by applying custom handler that returns boolean */
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
+    /** Completes after first value received */
     first(): this;
-    map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
-    /** Redirects data to selected stream cancelling processing in current */
+    /** Maps data by replacing by initial value or by applying custom handler */
+    map(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this;
+    /** Redirects data to selected stream */
     redirect(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
     }): this;
+    reduce(reducer: (accumulator: T, data: T, count?: number) => T, accumulator: T): this;
     select(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
     }): this;
