@@ -1,8 +1,9 @@
+import {CyclicBuffer} from "./buffer";
 import {CANCELLED, COMPLETED} from "./const";
 import {BufferInterface} from "./interfaces/buffer_interface";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
-import {CyclicBuffer} from "./buffer";
+import {Storage} from './storage';
 import {Subscriber, UnsafeSubscriber} from "./subscriber";
 import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
 
@@ -213,6 +214,7 @@ export class Stream<T> implements StreamInterface<T> {
         });
     }
 
+    /** Emits data after delay */
     public delay(milliseconds: number): this {
         return this._middlewareAdd((data) => new Promise<T>(
             (resolve) => setTimeout(
@@ -221,6 +223,7 @@ export class Stream<T> implements StreamInterface<T> {
         ));
     }
 
+    /** Dispatches data to subscribers ahead of next middlewares then return income data as is */
     public dispatch(): this {
         return this._middlewareAdd((data) => {
             this._subscriberOnData(data);
@@ -229,6 +232,7 @@ export class Stream<T> implements StreamInterface<T> {
         });
     }
 
+    /** Executes custom handler over data then returns result value or income data as is if returned value is undefined */
     public exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this {
         return this._middlewareAdd((data, stream) => {
             let result = middleware(data, stream);
@@ -237,6 +241,7 @@ export class Stream<T> implements StreamInterface<T> {
         });
     }
 
+    /** Filters data applying custom handler that returns boolean or comparing with initial value */
     public filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this {
         return this._middlewareAdd(
             middleware instanceof Function
@@ -259,6 +264,7 @@ export class Stream<T> implements StreamInterface<T> {
         return this._middlewareAdd(middleware);
     }
 
+    /** Redirects data to selected stream cancelling processing in current */
     public redirect(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this {
         return this._middlewareAdd((data: T) => {
             const index = selector(data);
@@ -266,7 +272,7 @@ export class Stream<T> implements StreamInterface<T> {
             if (index in streams) {
                 streams[index].emit(data);
 
-                return CANCELLED;
+                return data;
             }
 
             throw new Error(`"redirect" middleware got invalid index from selector: ${index}`);
@@ -274,19 +280,19 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public select(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this {
-        return this._middlewareAdd((data: T) => {
+        return this._middlewareAdd((data: T, stream, subscribers, middlewareIndex, cb) => {
             const index = selector(data);
 
             if (index in streams) {
-                return new Promise<T>((resolve, reject) => {
-                    const subscriber = streams[index].subscribe(
-                        resolve,
-                        reject,
-                        () => reject(CANCELLED)
-                    ).isolated().once();
+                const subscriber = streams[index].subscribe(
+                    this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
+                    this._subscriberOnError.bind(this),
+                    // this._subscriberOnError.bind(this),
+                ).isolated().once();
 
-                    streams[index].root.emit(data, [subscriber]);
-                });
+                streams[index].root.emit(data, [subscriber]);
+
+                return CANCELLED;
             }
 
             throw new Error(`"select" middleware got invalid index from selector: ${index}`);
@@ -346,7 +352,7 @@ export class Stream<T> implements StreamInterface<T> {
         while (true) {
             if (this._middlewares) {
                 for (const l = this._middlewares.length; middlewareIndex < l; middlewareIndex ++) {
-                    data = this._middlewares[middlewareIndex](data as T, this);
+                    data = this._middlewares[middlewareIndex](data as T, this, subscribers, middlewareIndex + 1, cb);
 
                     if (data instanceof Promise) {
                         data.then(
@@ -369,9 +375,13 @@ export class Stream<T> implements StreamInterface<T> {
                 }
 
                 if (data !== CANCELLED) {
+                    this._transmittedCount ++;
+
                     this._subscriberOnData(data, subscribers);
                 }
             } else {
+                this._transmittedCount ++;
+
                 this._subscriberOnData(data, subscribers);
             }
 
@@ -398,7 +408,7 @@ export class Stream<T> implements StreamInterface<T> {
             return this;
         }
 
-        const stream = this.compatible;
+        const stream = this.compatible.setRoot(this.root);
 
         this._subscriberAdd(new UnsafeSubscriber<T>(
             this,
@@ -407,7 +417,7 @@ export class Stream<T> implements StreamInterface<T> {
             stream.complete.bind(stream)
         ));
 
-        return this._isProgressive ? this : this.fork();
+        return this._isProgressive ? this : stream;
     }
 
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T> {
@@ -488,41 +498,6 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected onSubscriberRemove(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
         return subscriber;
-    }
-
-}
-
-export class Storage<T> {
-
-    public removed: number = 0;
-    public storage: T[];
-
-    public constructor(size: number = 0) {
-        this.storage = size > 0 ? new Array(size) : [];
-    }
-
-    public add(value: T) {
-        if (this.removed >= this.storage.length >> 1) {
-            this.storage[this.storage.indexOf(null)] = value;
-
-            this.removed --;
-        } else {
-            this.storage.push(value);
-        }
-
-        return value;
-    }
-
-    public delete(value: T) {
-        const i = this.storage.indexOf(value);
-
-        if (i !== - 1) {
-            this.storage[i] = null;
-
-            this.removed ++;
-        }
-
-        return value;
     }
 
 }

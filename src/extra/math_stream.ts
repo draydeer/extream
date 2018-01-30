@@ -11,11 +11,27 @@ export class MathStream extends Stream<number> {
     }
 
     public abs(): this {
-        return this._middlewareAdd((data: number) => Math.abs(data));
+        return this._middlewareAdd(Math.abs);
     }
 
     public average(): this {
         return this._middlewareAdd((data: number) => data / (this._transmittedCount + 1));
+    }
+
+    public ceil(): this {
+        return this._middlewareAdd(Math.ceil);
+    }
+
+    public cos(): this {
+        return this._middlewareAdd(Math.cos);
+    }
+
+    public floor(): this {
+        return this._middlewareAdd(Math.floor);
+    }
+
+    public log(): this {
+        return this._middlewareAdd(Math.log);
     }
 
     public max(): this {
@@ -44,7 +60,7 @@ export class MathStream extends Stream<number> {
         return this._middlewareAdd((data: number) => {
             accumulator = reducer(accumulator, data, this._transmittedCount + 1);
 
-            return this._accumulator;
+            return accumulator;
         });
     }
 
@@ -58,8 +74,16 @@ export class MathStream extends Stream<number> {
         });
     }
 
+    public round(): this {
+        return this._middlewareAdd(Math.round);
+    }
+
+    public sin(): this {
+        return this._middlewareAdd(Math.sin);
+    }
+
     public sqrt(): this {
-        return this._middlewareAdd((data: number) => Math.sqrt(data));
+        return this._middlewareAdd(Math.sqrt);
     }
 
     public sum(): this {

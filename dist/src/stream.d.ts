@@ -1,6 +1,7 @@
 import { BufferInterface } from "./interfaces/buffer_interface";
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
+import { Storage } from './storage';
 import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
 /**
  * Stream.
@@ -47,12 +48,17 @@ export declare class Stream<T> implements StreamInterface<T> {
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
+    /** Emits data after delay */
     delay(milliseconds: number): this;
+    /** Dispatches data to subscribers ahead of next middlewares then return income data as is */
     dispatch(): this;
+    /** Executes custom handler over data then returns result value or income data as is if returned value is undefined */
     exec(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
+    /** Filters data applying custom handler that returns boolean or comparing with initial value */
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;
     map(middleware: (data: T, stream?: StreamInterface<T>) => T | Promise<T>): this;
+    /** Redirects data to selected stream cancelling processing in current */
     redirect(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
     }): this;
@@ -76,11 +82,4 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _subscriberOnError(error: any, subscribers?: SubscriberInterface<T>[]): this;
     protected onSubscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected onSubscriberRemove(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
-}
-export declare class Storage<T> {
-    removed: number;
-    storage: T[];
-    constructor(size?: number);
-    add(value: T): T;
-    delete(value: T): T;
 }

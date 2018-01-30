@@ -7,6 +7,7 @@ import {CyclicBuffer} from './buffer';
 import {FetchStream} from './extra/fetch_stream';
 import {FetchResponseStream} from "./extra/fetch_stream";
 import {MathStream} from "./extra/math_stream";
+import {Storage} from './storage';
 
 let time, timeSpentNew, timeSpentOld;
 
@@ -82,49 +83,90 @@ function stop(title, ops) {
 
 (async () => {
     try {
-         const select = {
-             ok: new FetchResponseStream<any>()
-                 .extractText().map((data) => data.substr(0, 10)),
-             error: new Stream<any>()
-                 .map((data) => 'not ok')
-         };
+         // const select = {
+         //     ok: new FetchResponseStream<any>()
+         //         .extractText().debug((data) => {
+         //             const t = 5;
+         //         }).map((data) => data.substr(0, 10)),
+         //     error: new Stream<any>()
+         //         .map((data) => 'not ok')
+         // };
+         //
+         //  const fs = FetchStream.get<any>('https://google.com', 'test')
+         //     .select((response) => response.ok ? 'ok' : 'error', select);
+         //
+         //  fs.subscribe((data) => {
+         //     console.log(data);
+         //  }, (err) => {
+         //     console.error('error', err);
+         //  });
 
-          const fs = FetchStream.get<any>('https://google.com', 'test')
-             .select((response) => response.ok ? 'ok' : 'error', select);
+        const gg = new FetchResponseStream<any>().debug((data) => {
+            const g = 5;
+        }).map((data) => Promise.resolve(data * 2)).debug((data) => {
+            const g = 5;
+        });
 
-          fs.subscribe((data) => {
-             console.log(data);
-          }, (err) => {
-             console.error('error', err);
-          });
+        gg.subscribe((data) => console.log(data));
 
-        //const ms = new MathStream();
+        gg.root.emit(1);
+
+        // const ms = new MathStream();
         //
-        //ms
-        //    .progressive()
-        //    .sum()
-        //    .average()
-        //    .subscribe((data) => {
-        //       //console.log(`data: ${data}`);
-        //    }, (err) => {
-        //       console.error(err);
-        //    });
-        //;
+        // ms.progressive().sum().average().subscribe((data) => console.log(data));
         //
-        //start();
+        // ms.emit(1);
+        // ms.emit(2);
+        // ms.emit(3);
+
+        // const stor = new Storage();
         //
-        //for (let i = 0; i < 1000000; i ++) {
+        // start();
+        //
+        // for (let j = 0; j < 1000000; j ++) {
+        //     for (let i = 0; i < 10; i++) {
+        //         stor.add(i);
+        //     }
+        //
+        //     for (let i = 3; i < 9; i++) {
+        //         stor.delete(i);
+        //     }
+        // }
+        //
+        // stop('ok', 1000000);
+        //
+        // console.log(stor);
+
+        // const ms = new MathStream();
+        //
+        // ms
+        //     .progressive()
+        //     .sum()
+        //     .average()
+        //     // .sqrt()
+        //     // .round()
+        //     .subscribe((data) => {
+        //         //console.log(`data: ${data}`);
+        //     }, (err) => {
+        //         console.error(err);
+        //     });
+        // ;
+        //
+        // start();
+        //
+        // for (let i = 0; i < 10000000; i ++) {
         //    ms.emit(i);
-        //}
-        //ms.emit(1);
-        //ms.emit(2);
-        //ms.emit(3);
-        //ms.emit(4);
-        //ms.emit(5);
+        // }
         //
-        //stop('ok', 1000000);
+        // ms.prebuffer(5);
         //
-        //ms.prebuffer(5);
+        // ms.emit(1);
+        // ms.emit(2);
+        // ms.emit(3);
+        // ms.emit(4);
+        // ms.emit(5);
+        //
+        // stop('ok', 10000000);
 
         // start();
         //

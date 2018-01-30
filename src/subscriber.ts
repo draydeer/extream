@@ -124,7 +124,7 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     }
 
     public get isIsolated() {
-        return this._isIsolated === true;
+        return true;
     }
 
     public get stream(): StreamInterface<T> {

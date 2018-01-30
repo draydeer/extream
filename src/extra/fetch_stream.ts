@@ -12,6 +12,10 @@ export interface FetchStreamInterface<T> extends StreamInterface<T> {
 
 export class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
 
+    public get compatible(): this {
+        return new FetchResponseStream<T>() as this;
+    }
+
     // middlewares
 
     public extractBlob() {
@@ -60,10 +64,6 @@ export class FetchStream<T> extends FetchResponseStream<T> {
 
     public constructor(protected _url: string, protected _options?: any) {
         super();
-    }
-
-    public get compatible(): this {
-        return new FetchResponseStream<T>() as this;
     }
 
     public emit(options?: any, subscribers?: SubscriberInterface<T>[]): this {
