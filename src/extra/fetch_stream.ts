@@ -19,19 +19,19 @@ export class FetchResponseStream<T> extends Stream<T> implements FetchStreamInte
     // middlewares
 
     public extractBlob() {
-        return this._middlewareAdd((data: any, stream) => data.blob());
+        return this._middlewareAdd((data: any, stream) => data.blob()).await();
     }
 
     public extractFormData() {
-        return this._middlewareAdd((data: any, stream) => data.formData());
+        return this._middlewareAdd((data: any, stream) => data.formData()).await();
     }
 
     public extractJson() {
-        return this._middlewareAdd((data: any, stream) => data.json());
+        return this._middlewareAdd((data: any, stream) => data.json()).await();
     }
 
     public extractText() {
-        return this._middlewareAdd((data: any, stream) => data.text());
+        return this._middlewareAdd((data: any, stream) => data.text()).await();
     }
 
 }

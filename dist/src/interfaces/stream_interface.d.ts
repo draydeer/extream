@@ -1,8 +1,10 @@
 import { SubscriberInterface } from "./subscriber_interface";
 import { OnComplete, OnData, OnError, PromiseOrT } from "../types";
 export interface StreamInterface<T> {
+    readonly completed: boolean;
     readonly compatible: this;
     readonly root: this;
+    await(): this;
     complete(): this;
     debounce(seconds: number): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
@@ -25,8 +27,8 @@ export interface StreamInterface<T> {
         [key: string]: StreamInterface<T>;
     }): this;
     setRoot(stream: StreamInterface<T>): this;
-    subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T>;
-    subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
+    subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T>;
+    subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     synchronized(): this;
     toCompletionPromise(): Promise<T>;

@@ -20,6 +20,6 @@ export declare class Executor<T> extends Stream<T> implements Promise<T> {
     pipeOutgoingTo(...streams: StreamInterface<T>[]): this;
     pipeToIncoming(...streams: StreamInterface<T>[]): this;
     run(): this;
-    catch(onrejected?: OnError): Promise<T>;
+    catch(onrejected?: OnError<T>): Promise<T>;
     then(onfulfilled?: OnData<T>): Promise<T>;
 }

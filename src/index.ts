@@ -83,23 +83,34 @@ function stop(title, ops) {
 
 (async () => {
     try {
-          const select = {
-              ok: new FetchResponseStream<any>()
-                  .extractText().debug((data) => {
-                      const t = 5;
-                  }).map((data) => data.substr(0, 10)),
-              error: new Stream<any>()
-                  .map((data) => 'not ok')
-          };
+          // const select = {
+          //     ok: new FetchResponseStream<any>()
+          //         .extractText().debug((data) => {
+          //             const t = 5;
+          //         }).map((data) => data.substr(0, 10)).debug((data) => {
+          //             const t = 5;
+          //         }),
+          //     error: new Stream<any>()
+          //         .map((data) => 'not ok')
+          // };
 
-           const fs = FetchStream.get<any>('https://google.com', 'test')
-              .select((response) => response.ok ? 'ok' : 'error', select);
+           // const fs = FetchStream.get<any>('https://google.com', 'test')
+           //    .select((response) => response.ok ? 'ok' : 'error', select);
+           //
+           // fs.subscribe((data) => {
+           //    console.log(data);
+           // }, (err) => {
+           //    console.error('error', err);
+           // });
 
-           fs.subscribe((data) => {
-              console.log(data);
-           }, (err) => {
-              console.error('error', err);
-           });
+        // const fs = FetchStream.get<any>('https://google.com', 'test')
+        //     .redirect((response) => response.ok ? 'ok' : 'error', select);
+        //
+        // Stream.merge(select.ok, select.error).subscribe((data) => {
+        //     console.log(data);
+        // }, (err) => {
+        //     console.error('error', err);
+        // });
 
         //const gg = new FetchResponseStream<any>().debug((data) => {
         //    const g = 5;
@@ -137,32 +148,31 @@ function stop(title, ops) {
          //
          //console.log(stor);
 
-        //const s2 = new Stream<string>()
-        //    .progressive()
-        //    .reduce((a, d) => a + d, '')
-        //    .debounce(.25)
-        //    .map((d) => ':' + d + ':')
-        //    .filter(':12345:');
-        //
-        //s2.subscribe((data) => console.log(data));
-        //
-        //const pause = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
-        //
-        //s2.emit('1');
-        //s2.emit('2');
-        //
-        //await pause(0.5);
-        //
-        //s2.emit('3');
-        //s2.emit('4');
-        //
-        //await pause(0.5);
-        //
-        //s2.emit('5');
+        const s2 = new Stream<string>()
+           .progressive()
+           .reduce((a, d) => a + d, '')
+           .debounce(.25)
+           .map((d) => ':' + d + ':');
 
-         //const ms = new MathStream();
+        s2.subscribe((data) => console.log(data));
+
+        const pause = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
+
+        s2.emit('1');
+        s2.emit('2');
+
+        await pause(0.5);
+
+        s2.emit('3');
+        s2.emit('4');
+
+        await pause(0.5);
+
+        s2.emit('5');
+
+         // const ms = new MathStream();
          //
-         //ms
+         // ms
          //    .progressive()
          //    .sum()
          //    .average()
@@ -173,23 +183,23 @@ function stop(title, ops) {
          //    }, (err) => {
          //        console.error(err);
          //    });
-         //;
+         // ;
          //
-         //start();
+         // start();
          //
-         //for (let i = 0; i < 10000000; i ++) {
+         // for (let i = 0; i < 30000000; i ++) {
          //   ms.emit(i);
-         //}
+         // }
          //
-         //ms.prebuffer(5);
+         // ms.prebuffer(5);
          //
-         //ms.emit(1);
-         //ms.emit(2);
-         //ms.emit(3);
-         //ms.emit(4);
-         //ms.emit(5);
+         // ms.emit(1);
+         // ms.emit(2);
+         // ms.emit(3);
+         // ms.emit(4);
+         // ms.emit(5);
          //
-         //stop('ok', 10000000);
+         // stop('ok', 30000000);
 
         // start();
         //

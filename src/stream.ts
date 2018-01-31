@@ -7,13 +7,16 @@ import {Storage} from './storage';
 import {Subscriber, UnsafeSubscriber} from "./subscriber";
 import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
 import {PromiseOrT} from "./types";
+import {ResourceInterface} from './interfaces/resource_interface';
+import {StreamIsCompletedError} from './errors';
+import {TimerResource} from './resource';
 
 /**
  * Stream.
  */
 export class Stream<T> implements StreamInterface<T> {
 
-    protected _isEmptyLastValue: boolean;
+    protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
     protected _isProgressive: boolean;
@@ -23,6 +26,7 @@ export class Stream<T> implements StreamInterface<T> {
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
     protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _resources: ResourceInterface<any>[];
     protected _root: StreamInterface<T>;
     protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number = 0;
@@ -59,6 +63,10 @@ export class Stream<T> implements StreamInterface<T> {
 
     }
 
+    public get completed(): boolean {
+        return this._isCompleted === true;
+    }
+
     public get compatible(): this {
         return new Stream<T>() as this;
     }
@@ -91,13 +99,21 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public complete(): this {
-        this._subscriberOnComplete();
+    public complete(subscribers?: SubscriberInterface<T>[]): this {
+        if (this._isCompleted) {
+            throw new StreamIsCompletedError();
+        }
+
+        this._subscriberOnComplete(subscribers)._shutdown();
 
         return this;
     }
 
     public emit(data: T, subscribers?: SubscriberInterface<T>[]): this {
+        if (this._isCompleted) {
+            throw new StreamIsCompletedError();
+        }
+
         if (this._prebuffer) {
             if (this._isProcessing) {
                 this._prebuffer.add([data, subscribers]);
@@ -112,21 +128,29 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this {
+        if (this._isCompleted) {
+            throw new StreamIsCompletedError();
+        }
+
         if (this._prebuffer) {
             if (this._isProcessing) {
                 this._prebuffer.add([data, subscribers]);
             } else {
-                this._emitLoop(subscribers, 0, this._subscriberOnComplete.bind(this, subscribers), data);
+                this._emitLoop(subscribers, 0, this.complete.bind(this, subscribers), data);
             }
         } else {
-            this._emitLoop(subscribers, 0, this._subscriberOnComplete.bind(this, subscribers), data);
+            this._emitLoop(subscribers, 0, this.complete.bind(this, subscribers), data);
         }
 
         return this;
     }
 
-    public error(error: any): this {
-        this._subscriberOnError(error);
+    public error(error: any, subscribers?: SubscriberInterface<T>[]): this {
+        if (this._isCompleted) {
+            throw new StreamIsCompletedError();
+        }
+
+        this._subscriberOnError(error, subscribers);
 
         return this;
     }
@@ -137,12 +161,6 @@ export class Stream<T> implements StreamInterface<T> {
         this.subscribeStream(stream);
 
         return stream.setRoot(this.root);
-    }
-
-    public emptyLastValue(): this {
-        this._isEmptyLastValue = true;
-
-        return this;
     }
 
     public pause(): this {
@@ -181,11 +199,11 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T> {
+    public subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T> {
         return this._subscriberAdd(new Subscriber<T>(this, onData, onError, onComplete));
     }
 
-    public subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T> {
+    public subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T> {
         return this._subscriberAdd(new Subscriber<T>(this, void 0, void 0, onComplete));
     }
 
@@ -207,17 +225,38 @@ export class Stream<T> implements StreamInterface<T> {
 
     // middlewares
 
+    public await(): this {
+        return this._middlewareAdd((data: T, stream, subscribers, middlewareIndex, cb) => {
+            if (data instanceof Promise) {
+                data.then(
+                    this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
+                    (error) => this._subscriberOnError(error, subscribers)
+                );
+
+                return CANCELLED;
+            } else if (data instanceof Stream) {
+                data.subscribe(
+                    this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
+                    (error) => this._subscriberOnError(error, subscribers)
+                );
+
+                return CANCELLED;
+            }
+
+            return data;
+        }, true);
+    }
+
     /** Continues processing after expiration of  */
     public debounce(seconds: number): this {
-        let nextMoment;
+        let cachedData;
+        let timerResource = this._resourceAdd(new TimerResource());
 
-        return this._middlewareAdd((data) => {
-            const moment = Date.now();
+        return this._middlewareAdd((data, stream, subscribers, middlewareIndex, cb) => {
+            cachedData = data;
 
-            if (nextMoment === void 0 || nextMoment <= moment) {
-                nextMoment = moment + seconds * 1000;
-
-                return data;
+            if (! timerResource.resource) {
+                timerResource.create(() => this._emitLoop(subscribers, middlewareIndex, cb, cachedData), seconds);
             }
 
             return CANCELLED;
@@ -230,7 +269,7 @@ export class Stream<T> implements StreamInterface<T> {
             callback(data);
 
             return data;
-        });
+        }, true);
     }
 
     /** Dispatches data to subscribers ahead of processing by remained middlewares */
@@ -278,13 +317,13 @@ export class Stream<T> implements StreamInterface<T> {
 
     /** Redirects data to selected stream */
     public redirect(selector: (data: T) => string, streams: {[key: string]: StreamInterface<T>}): this {
-        return this._middlewareAdd((data: T) => {
+        return this._middlewareAdd((data: T, stream, subscribers, middlewareIndex, cb) => {
             const index = selector(data);
 
             if (index in streams) {
-                streams[index].emit(data);
+                streams[index].root.emit(data, subscribers);
 
-                return data;
+                return CANCELLED;
             }
 
             throw new Error(`"redirect" middleware got invalid index from selector: ${index}`);
@@ -358,15 +397,6 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _emitLoop(subscribers, middlewareIndex, cb, data) {
-        if (data instanceof Promise) {
-            data.then(
-                this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
-                this._subscriberOnError.bind(this)
-            );
-
-            return;
-        }
-
         this._isProcessing = true;
 
         while (true) {
@@ -374,32 +404,13 @@ export class Stream<T> implements StreamInterface<T> {
                 for (const l = this._middlewares.length; middlewareIndex < l; middlewareIndex ++) {
                     data = this._middlewares[middlewareIndex](data as T, this, subscribers, middlewareIndex + 1, cb);
 
-                    if (data instanceof Promise) {
-                        data.then(
-                            this._emitLoop.bind(this, subscribers, middlewareIndex + 1, cb),
-                            this._subscriberOnError.bind(this)
-                        );
-
-                        if (this._isSynchronized) {
-                            return;
-                        }
-
-                        data = CANCELLED;
-
-                        break;
-                    }
-
                     if (data === CANCELLED) {
                         break;
                     }
                 }
+            }
 
-                if (data !== CANCELLED) {
-                    this._transmittedCount ++;
-
-                    this._subscriberOnData(data, subscribers);
-                }
-            } else {
+            if (data !== CANCELLED) {
                 this._transmittedCount ++;
 
                 this._subscriberOnData(data, subscribers);
@@ -417,18 +428,20 @@ export class Stream<T> implements StreamInterface<T> {
         }
     }
 
-    protected _middlewareAdd(middleware: StreamMiddleware<T>): this {
+    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean): this {
         if (this._middlewares === void 0) {
-            this._middlewares = [];
-        }
+            this._middlewares = [middleware];
 
-        this._middlewares.push(middleware);
-
-        if (this._isProgressive) {
             return this;
         }
 
-        const stream = this.compatible.setRoot(this.root);
+        if (progressive || this._isProgressive) {
+            this._middlewares.push(middleware);
+
+            return this;
+        }
+
+        const stream = this.compatible.setRoot(this.root)._middlewareAdd(middleware);
 
         this._subscriberAdd(new UnsafeSubscriber<T>(
             this,
@@ -437,7 +450,7 @@ export class Stream<T> implements StreamInterface<T> {
             stream.complete.bind(stream)
         ));
 
-        return this._isProgressive ? this : stream;
+        return stream;
     }
 
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T> {
@@ -448,6 +461,26 @@ export class Stream<T> implements StreamInterface<T> {
         this._middlewaresAfterDispatch.push(middleware);
 
         return middleware;
+    }
+
+    protected _resourceAdd(resource: ResourceInterface<any>): ResourceInterface<any> {
+        if (this._resources === void 0) {
+            this._resources = [];
+        }
+
+        this._resources.push(resource);
+
+        return resource;
+    }
+
+    protected _shutdown(): this {
+        if (this._resources) {
+            for (const resource of this._resources) {
+                resource.close();
+            }
+        }
+
+        return this;
     }
 
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
@@ -471,13 +504,9 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberOnComplete(subscribers?: SubscriberInterface<T>[]): this {
-        if (subscribers) {
-            for (const subscriber of subscribers) {
-                subscriber.doComplete();
-            }
-        } else if (this._subscribers) {
+        if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
-                subscriber.doComplete();
+                subscriber.doComplete(subscribers);
             }
         }
 
@@ -485,13 +514,9 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberOnData(data: T, subscribers?: SubscriberInterface<T>[]): this {
-        if (subscribers) {
-            for (const subscriber of subscribers) {
-                subscriber.doData(data);
-            }
-        } else if (this._subscribers) {
+        if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
-                subscriber.doData(data);
+                subscriber.doData(data, subscribers);
             }
         }
 
@@ -499,13 +524,9 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberOnError(error: any, subscribers?: SubscriberInterface<T>[]): this {
-        if (subscribers) {
-            for (const subscriber of subscribers) {
-                subscriber.doError(error);
-            }
-        } else if (this._subscribers) {
+        if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
-                subscriber.doError(error);
+                subscriber.doError(error, subscribers);
             }
         }
 

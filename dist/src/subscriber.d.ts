@@ -8,20 +8,20 @@ export declare class Subscriber<T> implements SubscriberInterface<T> {
     protected _id: string;
     protected _isIsolated: boolean;
     protected _middleware: any;
-    protected _onComplete: OnComplete;
+    protected _onComplete: OnComplete<T>;
     protected _onData: OnData<T>;
-    protected _onError: OnError;
+    protected _onError: OnError<T>;
     protected _stream: StreamInterface<T>;
+    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
     readonly isIsolated: boolean;
     readonly stream: StreamInterface<T>;
-    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete);
     isolated(): this;
     unsubscribe(): this;
     once(): this;
-    doComplete(): this;
-    doData(data: T): this;
-    doError(error: any): this;
+    doComplete(subscribers?: SubscriberInterface<T>[]): this;
+    doData(data: T, subscribers?: SubscriberInterface<T>[]): this;
+    doError(error: any, subscribers?: SubscriberInterface<T>[]): this;
     protected _processMiddleware(data?: T): T;
 }
 /**
@@ -32,13 +32,13 @@ export declare class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     protected _isIsolated: boolean;
     protected _middleware: any;
     protected _stream: StreamInterface<T>;
-    doComplete: OnComplete;
+    doComplete: OnComplete<T>;
     doData: OnData<T>;
-    doError: OnError;
+    doError: OnError<T>;
+    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
     readonly isIsolated: boolean;
     readonly stream: StreamInterface<T>;
-    constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete);
     isolated(): this;
     unsubscribe(): this;
     once(): this;

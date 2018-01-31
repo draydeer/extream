@@ -4,11 +4,12 @@ import { SubscriberInterface } from "./interfaces/subscriber_interface";
 import { Storage } from './storage';
 import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
 import { PromiseOrT } from "./types";
+import { ResourceInterface } from './interfaces/resource_interface';
 /**
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
-    protected _isEmptyLastValue: boolean;
+    protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
     protected _isProgressive: boolean;
@@ -18,6 +19,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
     protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _resources: ResourceInterface<any>[];
     protected _root: StreamInterface<T>;
     protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number;
@@ -25,6 +27,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
+    readonly completed: boolean;
     readonly compatible: this;
     readonly isPaused: boolean;
     readonly lastValue: T;
@@ -32,22 +35,22 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly subscribersCount: number;
     readonly transmittedCount: number;
     setRoot(stream: StreamInterface<T>): this;
-    complete(): this;
+    complete(subscribers?: SubscriberInterface<T>[]): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
-    error(error: any): this;
+    error(error: any, subscribers?: SubscriberInterface<T>[]): this;
     fork(): this;
-    emptyLastValue(): this;
     pause(): this;
     postbuffer(size?: number): this;
     prebuffer(size?: number): this;
     progressive(): this;
     resume(): this;
     synchronized(): this;
-    subscribe(onData?: OnData<T>, onError?: OnError, onComplete?: OnComplete): SubscriberInterface<T>;
-    subscribeOnComplete(onComplete?: OnComplete): SubscriberInterface<T>;
+    subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T>;
+    subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
+    await(): this;
     /** Continues processing after expiration of  */
     debounce(seconds: number): this;
     /** Runs debug callback then returns incoming data as is */
@@ -78,8 +81,10 @@ export declare class Stream<T> implements StreamInterface<T> {
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;
     protected _emitLoop(subscribers: any, middlewareIndex: any, cb: any, data: any): any;
-    protected _middlewareAdd(middleware: StreamMiddleware<T>): this;
+    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean): this;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
+    protected _resourceAdd(resource: ResourceInterface<any>): ResourceInterface<any>;
+    protected _shutdown(): this;
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T>;
     protected _subscriberRemove(subscriber: SubscriberInterface<T>): this;
     protected _subscriberOnComplete(subscribers?: SubscriberInterface<T>[]): this;
