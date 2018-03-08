@@ -1,5 +1,7 @@
 export interface ResourceInterface<T> {
+    isClosed: boolean;
     resource: T;
-    create(...args: any[]): this;
+    clear(): this;
     close(): this;
+    open(...args: any[]): this;
 }

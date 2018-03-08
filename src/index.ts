@@ -148,58 +148,67 @@ function stop(title, ops) {
          //
          //console.log(stor);
 
-        const s2 = new Stream<string>()
-           .progressive()
-           .reduce((a, d) => a + d, '')
-           .debounce(.25)
-           .map((d) => ':' + d + ':');
+        // const s2 = new Stream<string>()
+        //    .progressive()
+        //    .reduce((a, d) => a + d, '')
+        //    .throttle(.25)
+        //    .map((d) => ':' + d + ':');
+        //
+        // s2.subscribe((data) => console.log(data));
+        //
+        // const pause = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
+        //
+        // s2.emit('1');
+        // s2.emit('2');
+        //
+        // await pause(0.5);
+        //
+        // s2.emit('3');
+        // s2.emit('4');
+        //
+        // await pause(0.5);
+        //
+        // s2.emit('5');
 
-        s2.subscribe((data) => console.log(data));
+         const ms = new MathStream();
 
-        const pause = (s) => new Promise((resolve) => setTimeout(resolve, s * 1000));
+         ms
+            .progressive()
+            // .sum()
+            // .average()
+            // .sqrt()
+            // .round();
+         ;
 
-        s2.emit('1');
-        s2.emit('2');
+        ms.subscribe((data) => {
+            //console.log(`data: ${data}`);
+        }, (err) => {
+            console.error(err);
+        });
 
-        await pause(0.5);
+        ms.subscribe((data) => {
+            //console.log(`data: ${data}`);
+        }, (err) => {
+            console.error(err);
+        });
 
-        s2.emit('3');
-        s2.emit('4');
+         start();
 
-        await pause(0.5);
+         for (let i = 0; i < 3000000000; i ++) {
+           ms.emit(i);
+         }
 
-        s2.emit('5');
+         ms.prebuffer(5);
 
-         // const ms = new MathStream();
-         //
-         // ms
-         //    .progressive()
-         //    .sum()
-         //    .average()
-         //    // .sqrt()
-         //    // .round()
-         //    .subscribe((data) => {
-         //        //console.log(`data: ${data}`);
-         //    }, (err) => {
-         //        console.error(err);
-         //    });
-         // ;
-         //
-         // start();
-         //
-         // for (let i = 0; i < 30000000; i ++) {
-         //   ms.emit(i);
-         // }
-         //
-         // ms.prebuffer(5);
-         //
-         // ms.emit(1);
-         // ms.emit(2);
-         // ms.emit(3);
-         // ms.emit(4);
-         // ms.emit(5);
-         //
-         // stop('ok', 30000000);
+         ms.emit(1);
+         ms.emit(2);
+         ms.emit(3);
+         ms.emit(4);
+         ms.emit(5);
+
+         stop('ok', 3000000000);
+
+         console.log(ms.lastValue);
 
         // start();
         //

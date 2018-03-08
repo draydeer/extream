@@ -31,6 +31,7 @@ export interface StreamInterface<T> {
     subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     synchronized(): this;
+    throttle(seconds: number): this;
     toCompletionPromise(): Promise<T>;
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;

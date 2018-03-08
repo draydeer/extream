@@ -6,5 +6,5 @@ export declare class TimerResource implements ResourceInterface<NodeJS.Timer> {
     constructor();
     clear(): this;
     close(): this;
-    create(cb: any, seconds: any): this;
+    open(cb: any, seconds: any): this;
 }

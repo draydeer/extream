@@ -21,8 +21,8 @@ export class TimerResource implements ResourceInterface<NodeJS.Timer> {
         return this.clear();
     }
 
-    public create(cb, seconds): this {
-        if (this.isClosed) {
+    public open(cb, seconds): this {
+        if (this.isClosed || this.resource) {
             return this;
         }
 

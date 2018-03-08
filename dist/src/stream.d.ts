@@ -74,6 +74,8 @@ export declare class Stream<T> implements StreamInterface<T> {
         [key: string]: StreamInterface<T>;
     }): this;
     skip(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
+    /** Continues processing after expiration of  */
+    throttle(seconds: number): this;
     waitFor(stream: StreamInterface<T>): this;
     waitForCompletion(stream: StreamInterface<T>): this;
     waitForError(stream: StreamInterface<T>): this;
