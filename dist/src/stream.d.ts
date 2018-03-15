@@ -9,6 +9,7 @@ import { ResourceInterface } from './interfaces/resource_interface';
  * Stream.
  */
 export declare class Stream<T> implements StreamInterface<T> {
+    protected _isAutocomplete: boolean;
     protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -27,24 +28,46 @@ export declare class Stream<T> implements StreamInterface<T> {
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
-    readonly completed: boolean;
     readonly compatible: this;
+    readonly isCompleted: boolean;
     readonly isPaused: boolean;
     readonly lastValue: T;
     readonly root: this;
     readonly subscribersCount: number;
     readonly transmittedCount: number;
     setRoot(stream: StreamInterface<T>): this;
+    /**
+     * Enables automatic completion of stream if count of subscribers becomes zero.
+     */
+    autocomplete(): this;
     complete(subscribers?: SubscriberInterface<T>[]): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
     error(error: any, subscribers?: SubscriberInterface<T>[]): this;
     fork(): this;
+    /**
+     * Pauses stream stopping processing of emitted values.
+     */
     pause(): this;
+    /**
+     * Initiates post buffer where emitted and processed values will be stored before to be sent to subscribers.
+     */
     postbuffer(size?: number): this;
+    /**
+     * Initiates pre buffer where emitted values will be stored before to be processed.
+     */
     prebuffer(size?: number): this;
+    /**
+     * Enables progressive mode when added middleware will be chained inside current stream instead initiate new one.
+     */
     progressive(): this;
+    /**
+     * Resumes stream starting processing of emitted values.
+     */
     resume(): this;
+    /**
+     *
+     */
     synchronized(): this;
     subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
@@ -82,6 +105,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     toCompletionPromise(): Promise<T>;
     toErrorPromise(): Promise<T>;
     toPromise(): Promise<T>;
+    protected _assertReady(): this;
     protected _emitLoop(subscribers: any, middlewareIndex: any, cb: any, data: any): any;
     protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean): this;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;

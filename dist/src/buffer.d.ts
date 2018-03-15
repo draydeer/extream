@@ -1,5 +1,5 @@
-/// <reference types="es6-shim" />
 /// <reference types="node" />
+/// <reference types="es6-shim" />
 import { BufferInterface } from "./interfaces/buffer_interface";
 export declare class CyclicBuffer<T> implements BufferInterface<T> {
     protected _size: number;

@@ -1,6 +1,6 @@
 import { Stream } from "../stream";
 import { SubscriberInterface } from '../interfaces/subscriber_interface';
-export declare class WebsocketW3CWebsocketStream<T> extends Stream<T> {
+export declare class W3CWebsocketStream<T> extends Stream<T> {
     protected _client: any;
     constructor(url: string);
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;

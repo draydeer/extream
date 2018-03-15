@@ -3,7 +3,7 @@ import {w3cwebsocket as WebSocketClient} from "websocket";
 import {StreamInterface} from "../interfaces/stream_interface";
 import {SubscriberInterface} from '../interfaces/subscriber_interface';
 
-export class WebsocketW3CWebsocketStream<T> extends Stream<T> {
+export class W3CWebsocketStream<T> extends Stream<T> {
 
     protected _client: any;
 

@@ -6,7 +6,6 @@ import { OnComplete, OnData, OnError } from "./types";
  */
 export declare class Subscriber<T> implements SubscriberInterface<T> {
     protected _id: string;
-    protected _isIsolated: boolean;
     protected _middleware: any;
     protected _onComplete: OnComplete<T>;
     protected _onData: OnData<T>;
@@ -14,9 +13,7 @@ export declare class Subscriber<T> implements SubscriberInterface<T> {
     protected _stream: StreamInterface<T>;
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
-    readonly isIsolated: boolean;
     readonly stream: StreamInterface<T>;
-    isolated(): this;
     unsubscribe(): this;
     once(): this;
     doComplete(subscribers?: SubscriberInterface<T>[]): this;

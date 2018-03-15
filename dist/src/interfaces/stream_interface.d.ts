@@ -1,9 +1,10 @@
 import { SubscriberInterface } from "./subscriber_interface";
 import { OnComplete, OnData, OnError, PromiseOrT } from "../types";
 export interface StreamInterface<T> {
-    readonly completed: boolean;
+    readonly isCompleted: boolean;
     readonly compatible: this;
     readonly root: this;
+    autocomplete(): this;
     await(): this;
     complete(): this;
     debounce(seconds: number): this;

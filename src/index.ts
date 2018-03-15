@@ -1,5 +1,5 @@
 import {Stream} from "./stream";
-import {WebsocketW3CWebsocketStream} from "./extra/websocket_w3cwebsocket_stream";
+import {W3CWebsocketStream} from "./extra/w3cwebsocket_stream";
 import {Executor} from "./executor";
 import {Delegate} from "./delegate";
 import {IntervalStream} from "./extra/interval_stream";
@@ -8,6 +8,7 @@ import {FetchStream} from './extra/fetch_stream';
 import {FetchResponseStream} from "./extra/fetch_stream";
 import {MathStream} from "./extra/math_stream";
 import {Storage} from './storage';
+import {ExpressStream} from './extra/express_stream';
 
 let time, timeSpentNew, timeSpentOld;
 
@@ -43,7 +44,7 @@ function stop(title, ops) {
     console.log();
 }
 
-//const w = new WebsocketW3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
+//const w = new W3CWebsocketStream<any>('ws://127.0.0.1:9999/echo').filter((m) => m == "11" || m == "22");
 //
 //w.subscribe(
 //    (data: any) => {
@@ -83,6 +84,21 @@ function stop(title, ops) {
 
 (async () => {
     try {
+        const exp = new ExpressStream();
+
+        exp.filter((msg) => msg.type === 'started').subscribe((msg) => console.log(msg));
+
+        const router = exp.handle('/test').extractBody().extractForm();
+
+        router.subscribe((session) => {
+            console.log(session.req.body);
+
+            session.emit('123').complete();
+        });
+        router.subscribe((session) => null);
+
+        exp.start(12345);
+
           // const select = {
           //     ok: new FetchResponseStream<any>()
           //         .extractText().debug((data) => {
@@ -170,45 +186,45 @@ function stop(title, ops) {
         //
         // s2.emit('5');
 
-         const ms = new MathStream();
-
-         ms
-            .progressive()
-            // .sum()
-            // .average()
-            // .sqrt()
-            // .round();
-         ;
-
-        ms.subscribe((data) => {
-            //console.log(`data: ${data}`);
-        }, (err) => {
-            console.error(err);
-        });
-
-        ms.subscribe((data) => {
-            //console.log(`data: ${data}`);
-        }, (err) => {
-            console.error(err);
-        });
-
-         start();
-
-         for (let i = 0; i < 3000000000; i ++) {
-           ms.emit(i);
-         }
-
-         ms.prebuffer(5);
-
-         ms.emit(1);
-         ms.emit(2);
-         ms.emit(3);
-         ms.emit(4);
-         ms.emit(5);
-
-         stop('ok', 3000000000);
-
-         console.log(ms.lastValue);
+        //  const ms = new MathStream();
+        //
+        //  ms
+        //     .progressive()
+        //     // .sum()
+        //     // .average()
+        //     // .sqrt()
+        //     // .round();
+        //  ;
+        //
+        // ms.subscribe((data) => {
+        //     //console.log(`data: ${data}`);
+        // }, (err) => {
+        //     console.error(err);
+        // });
+        //
+        // ms.subscribe((data) => {
+        //     //console.log(`data: ${data}`);
+        // }, (err) => {
+        //     console.error(err);
+        // });
+        //
+        //  start();
+        //
+        //  for (let i = 0; i < 3000000000; i ++) {
+        //    ms.emit(i);
+        //  }
+        //
+        //  ms.prebuffer(5);
+        //
+        //  ms.emit(1);
+        //  ms.emit(2);
+        //  ms.emit(3);
+        //  ms.emit(4);
+        //  ms.emit(5);
+        //
+        //  stop('ok', 3000000000);
+        //
+        //  console.log(ms.lastValue);
 
         // start();
         //

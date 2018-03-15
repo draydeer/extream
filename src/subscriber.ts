@@ -10,7 +10,6 @@ let ID = 10000000;
 export class Subscriber<T> implements SubscriberInterface<T> {
 
     protected _id: string;
-    protected _isIsolated: boolean;
     protected _middleware;
     protected _onComplete: OnComplete<T>;
     protected _onData: OnData<T>;
@@ -29,18 +28,8 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         return this._id;
     }
 
-    public get isIsolated() {
-        return this._isIsolated === true;
-    }
-
     public get stream(): StreamInterface<T> {
         return this._stream;
-    }
-
-    public isolated(): this {
-        this._isIsolated = true;
-
-        return this;
     }
 
     public unsubscribe(): this {

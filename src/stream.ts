@@ -16,6 +16,7 @@ import {TimerResource} from './resource';
  */
 export class Stream<T> implements StreamInterface<T> {
 
+    protected _isAutocomplete: boolean;
     protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -63,12 +64,12 @@ export class Stream<T> implements StreamInterface<T> {
 
     }
 
-    public get completed(): boolean {
-        return this._isCompleted === true;
-    }
-
     public get compatible(): this {
         return new Stream<T>() as this;
+    }
+
+    public get isCompleted(): boolean {
+        return this._isCompleted === true;
     }
 
     public get isPaused(): boolean {
@@ -99,20 +100,23 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public complete(subscribers?: SubscriberInterface<T>[]): this {
-        if (this._isCompleted) {
-            throw new StreamIsCompletedError();
-        }
+    /**
+     * Enables automatic completion of stream if count of subscribers becomes zero.
+     */
+    public autocomplete(): this {
+        this._isAutocomplete = true;
 
-        this._shutdown();
+        return this;
+    }
+
+    public complete(subscribers?: SubscriberInterface<T>[]): this {
+        this._assertReady()._shutdown();
 
         return this;
     }
 
     public emit(data: T, subscribers?: SubscriberInterface<T>[]): this {
-        if (this._isCompleted) {
-            throw new StreamIsCompletedError();
-        }
+        this._assertReady();
 
         if (this._prebuffer) {
             if (this._isProcessing) {
@@ -128,9 +132,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this {
-        if (this._isCompleted) {
-            throw new StreamIsCompletedError();
-        }
+        this._assertReady();
 
         if (this._prebuffer) {
             if (this._isProcessing) {
@@ -146,11 +148,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public error(error: any, subscribers?: SubscriberInterface<T>[]): this {
-        if (this._isCompleted) {
-            throw new StreamIsCompletedError();
-        }
-
-        this._subscriberOnError(error, subscribers);
+        this._assertReady()._subscriberOnError(error, subscribers);
 
         return this;
     }
@@ -163,36 +161,54 @@ export class Stream<T> implements StreamInterface<T> {
         return stream.setRoot(this.root);
     }
 
+    /**
+     * Pauses stream stopping processing of emitted values.
+     */
     public pause(): this {
         this._isPaused = true;
 
         return this;
     }
 
+    /**
+     * Initiates post buffer where emitted and processed values will be stored before to be sent to subscribers.
+     */
     public postbuffer(size: number = 10): this {
         this._postbuffer = new CyclicBuffer(size);
 
         return this;
     }
 
+    /**
+     * Initiates pre buffer where emitted values will be stored before to be processed.
+     */
     public prebuffer(size: number = 10): this {
         this._prebuffer = new CyclicBuffer(size);
 
         return this;
     }
 
+    /**
+     * Enables progressive mode when added middleware will be chained inside current stream instead initiate new one.
+     */
     public progressive(): this {
         this._isProgressive = true;
 
         return this;
     }
 
+    /**
+     * Resumes stream starting processing of emitted values.
+     */
     public resume(): this {
         this._isPaused = false;
 
         return this;
     }
 
+    /**
+     *
+     */
     public synchronized(): this {
         this._isSynchronized = true;
 
@@ -347,7 +363,7 @@ export class Stream<T> implements StreamInterface<T> {
                     this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
                     this._subscriberOnError.bind(this),
                     // this._subscriberOnError.bind(this),
-                ).isolated().once();
+                ).once();
 
                 streams[index].root.emit(data, [subscriber]);
 
@@ -410,6 +426,14 @@ export class Stream<T> implements StreamInterface<T> {
         return new Promise<T>((resolve, reject) => {
             this.subscribe(resolve, reject, () => reject(COMPLETED)).once();
         });
+    }
+
+    protected _assertReady(): this {
+        if (this._isCompleted) {
+            throw new StreamIsCompletedError();
+        }
+
+        return this;
     }
 
     protected _emitLoop(subscribers, middlewareIndex, cb, data) {
@@ -522,7 +546,7 @@ export class Stream<T> implements StreamInterface<T> {
 
         this._subscribers.delete(this.onSubscriberRemove(subscriber));
 
-        return this;
+        return this._isAutocomplete && this.subscribersCount === 0 ? this._shutdown() : this;
     }
 
     protected _subscriberOnComplete(subscribers?: SubscriberInterface<T>[]): this {
