@@ -33,6 +33,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly isPaused: boolean;
     readonly lastValue: T;
     readonly root: this;
+    readonly subscribers: SubscriberInterface<T>[];
     readonly subscribersCount: number;
     readonly transmittedCount: number;
     setRoot(stream: StreamInterface<T>): this;

@@ -4,15 +4,16 @@ export interface StreamInterface<T> {
     readonly isCompleted: boolean;
     readonly compatible: this;
     readonly root: this;
+    readonly subscribers: SubscriberInterface<T>[];
     autocomplete(): this;
     await(): this;
-    complete(): this;
+    complete(subscribers?: SubscriberInterface<T>[]): this;
     debounce(seconds: number): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;
     dispatch(): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
-    error(error: any): this;
+    error(error: any, subscribers?: SubscriberInterface<T>[]): this;
     exec(middleware: (data: T, stream?: StreamInterface<T>) => PromiseOrT<T>): this;
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;

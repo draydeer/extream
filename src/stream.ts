@@ -21,6 +21,7 @@ export class Stream<T> implements StreamInterface<T> {
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
     protected _isProgressive: boolean;
+    protected _isShared: boolean;
     protected _isSynchronized: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
@@ -76,12 +77,20 @@ export class Stream<T> implements StreamInterface<T> {
         return this._isPaused;
     }
 
+    public get isShared(): boolean {
+        return this._isShared;
+    }
+
     public get lastValue(): T {
         return this._lastValue;
     }
     
     public get root(): this {
         return this._root as this || this;
+    }
+
+    public get subscribers(): SubscriberInterface<T>[] {
+        return this._subscribers ? this._subscribers.storage : void 0;
     }
 
     public get subscribersCount(): number {
@@ -149,6 +158,12 @@ export class Stream<T> implements StreamInterface<T> {
 
     public error(error: any, subscribers?: SubscriberInterface<T>[]): this {
         this._assertReady()._subscriberOnError(error, subscribers);
+
+        return this;
+    }
+
+    public shared(): this {
+        this._isShared = true;
 
         return this;
     }
@@ -225,9 +240,9 @@ export class Stream<T> implements StreamInterface<T> {
 
     public subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T> {
         const subscription = this.subscribe(
-            stream.emit.bind(stream),
-            stream.error.bind(stream),
-            stream.complete.bind(stream)
+            (data, s, subscribers) => stream.emit(data, subscribers),
+            (error, s, subscribers) => stream.error(error, subscribers),
+            (s, subscribers) => stream.complete(subscribers)
         );
 
         stream.subscribeOnComplete(subscription.unsubscribe.bind(subscription));
@@ -424,7 +439,7 @@ export class Stream<T> implements StreamInterface<T> {
 
     public toPromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(resolve, reject, () => reject(COMPLETED)).once();
+            this.subscribe(resolve, (e) => reject(e), () => reject(COMPLETED)).once();
         });
     }
 

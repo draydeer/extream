@@ -12,114 +12,87 @@ export const EXPRESS_STREAM_STARTED_MSG: Msg = {type: 'started'};
 export class ExpressStream<T> extends Stream<Msg> {
 
     protected _app: express.Express = express();
-    protected _routers: {[key: string]: ExpressRouterStream<T>} = {};
+    protected _routers: {[key: string]: express.Router} = {};
+    protected _withPrefix: string = '/';
 
     public get app(): express.Express {
         return this._app;
     }
 
-    public handle(route, method='get'): ExpressRouteHandlerStream<T> {
-        return this.router().handle(route, method);
-    }
-
-    public router(prefix: string = '/'): ExpressRouterStream<T> {
+    public getExpressRouter(prefix: string): express.Router {
         if (! (prefix in this._routers)) {
-            this._routers[prefix] = new ExpressRouterStream(this, prefix);
+            this._routers[prefix] = express.Router();
         }
 
         return this._routers[prefix];
     }
 
+    public handle(route, method='get'): ExpressHandlerStream<T> {
+        switch (method) {
+            case 'all':
+            case 'delete':
+            case 'get':
+            case 'patch':
+            case 'post':
+            case 'put':
+                const routeHandlerStream = new ExpressHandlerStream<T>(this);
+
+                this.getExpressRouter(this._withPrefix)[method](route, (req, res, next) => {
+                    this.emit(makeBy(EXPRESS_STREAM_REQUEST_MSG, {method, route, req, res}));
+
+                    const sessionStream = new ExpressSessionStream(req, res);
+
+                    //sessionStream.emit(sessionStream, routeHandlerStream.subscribers);
+
+                    routeHandlerStream.emit(new ExpressSessionStream(req, res));
+                });
+
+                this.emit(makeBy(EXPRESS_STREAM_ROUTE_REGISTERED_MSG, {method, route}));
+
+                return routeHandlerStream;
+        }
+
+        throw new Error(`Unsupported method: ${method}`);
+    }
+
     public start(port: number = 8080): this {
-        Object.keys(this._routers).forEach((key) => this._routers[key].start());
+        Object.keys(this._routers).forEach((key) => this._app.use(key, this._routers[key]));
 
         this._app.listen(port, () => this.emit(EXPRESS_STREAM_STARTED_MSG));
 
         return this;
     }
 
-}
-
-export class ExpressRouterStream<T> extends Stream<ExpressSessionStream<T>> {
-
-    protected _router: express.Router = express.Router();
-
-    public constructor(protected _stream: ExpressStream<T>, protected _prefix: string = '/') {
-        super();
-
-        this.progressive();
-    }
-
-    public handle(route, method='get'): ExpressRouteHandlerStream<T> {
-        const routeHandlerStream = new ExpressRouteHandlerStream<T>(this);
-        const subscriptions = [this.subscribeStream(<any>routeHandlerStream)];
-
-        switch (method) {
-            case 'all':
-                this._router.all(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            case 'delete':
-                this._router.delete(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            case 'get':
-                this._router.get(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            case 'patch':
-                this._router.patch(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            case 'post':
-                this._router.post(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            case 'put':
-                this._router.put(route, (req, res, next) => {
-                    this.emit(new ExpressSessionStream(req, res), subscriptions);
-                });
-
-                break;
-
-            default:
-                throw new Error(`Unsupported method: ${method}`);
-        }
-
-        this._stream.emit(makeBy(EXPRESS_STREAM_ROUTE_REGISTERED_MSG, {method, route}));
-
-        return routeHandlerStream;
-    }
-
-    public start(): this {
-        this._stream.app.use(this._prefix, this._router);
+    public withPrefix(prefix: string): this {
+        this._withPrefix = prefix;
 
         return this;
+    }
+
+}
+
+export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string & T>> {
+
+    public constructor(protected _stream: ExpressStream<T>) {
+        super();
+    }
+
+    public handle(route, method='get'): ExpressHandlerStream<T> {
+        return this._stream.handle(route, method);
+    }
+
+    public withPrefix(prefix: string): ExpressStream<T> {
+        return this._stream.withPrefix(prefix);
     }
 
     // middlewares
 
     public extractBody(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>, stream, subscribers, middlewareIndex, cb) => {
+        this._middlewareAdd((data: ExpressSessionStream<string & T>, stream, subscribers, middlewareIndex, cb) => {
             data.body = <any>'';
 
             data.req
-                .on('data', (chunk) => data.body += <any>chunk.toString())
+                .on('data', (chunk) => data.body = <any>data.body + <any>chunk.toString())
                 .on('end', () => this._emitLoop(subscribers, middlewareIndex, cb, data))
                 .on('error', (err) => this.error(err));
 
@@ -130,21 +103,11 @@ export class ExpressRouterStream<T> extends Stream<ExpressSessionStream<T>> {
     }
 
     public extractForm(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>) => {
-            data.req.body = qs.parse(data.req.body);
-
-            return data;
-        });
-
-        return this;
-    }
-
-    public extractJson(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>) => {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
             try {
-                data.req.body = JSON.parse(data.req.body);
+                session.body = qs.parse(session.body);
 
-                return data;
+                return session;
             } catch (err) {
                 this.error(err);
 
@@ -155,51 +118,12 @@ export class ExpressRouterStream<T> extends Stream<ExpressSessionStream<T>> {
         return this;
     }
 
-}
-
-export class ExpressRouteHandlerStream<T> extends Stream<ExpressSessionStream<T>> {
-
-    public constructor(protected _routerStream: ExpressRouterStream<T>) {
-        super();
-    }
-
-    public get router(): ExpressRouterStream<T> {
-        return this._routerStream;
-    }
-
-    // middlewares
-
-    public extractBody(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>, stream, subscribers, middlewareIndex, cb) => {
-            data.body = <any>'';
-
-            data.req
-                .on('data', (chunk) => data.body += <any>chunk.toString())
-                .on('end', () => this._emitLoop(subscribers, middlewareIndex, cb, data))
-                .on('error', (err) => this.error(err));
-
-            return CANCELLED;
-        });
-
-        return this;
-    }
-
-    public extractForm(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>) => {
-            data.req.body = qs.parse(data.req.body);
-
-            return data;
-        });
-
-        return this;
-    }
-
     public extractJson(): this {
-        this._middlewareAdd((data: ExpressSessionStream<T>) => {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
             try {
-                data.req.body = JSON.parse(data.req.body);
+                session.body = JSON.parse(session.body);
 
-                return data;
+                return session;
             } catch (err) {
                 this.error(err);
 

@@ -99,11 +99,11 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
 
     // promise like
 
-    public catch(onrejected?: OnError<T>): Promise<T> {
+    public catch(onrejected?: (error) => any): Promise<T> {
         return this.promise.catch(onrejected);
     }
 
-    public then(onfulfilled?: OnData<T>): Promise<T> {
+    public then(onfulfilled?: (data: T) => any): Promise<T> {
         return this.promise.then(onfulfilled);
     }
 

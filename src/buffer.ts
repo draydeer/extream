@@ -12,7 +12,7 @@ export class CyclicBuffer<T> implements BufferInterface<T> {
 
     public constructor(protected _size: number = 10, protected _preallocate?: boolean) {
         if (_size < 1) {
-            throw new Error('Size must be >= 0');
+            throw new Error('Size must be >= 1');
         }
 
         if (_preallocate) {

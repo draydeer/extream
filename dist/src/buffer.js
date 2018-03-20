@@ -11,7 +11,7 @@ var CyclicBuffer = /** @class */ (function () {
         this._headIndex = 0;
         this._tailIndex = 0;
         if (_size < 1) {
-            throw new Error('Size must be >= 0');
+            throw new Error('Size must be >= 1');
         }
         if (_preallocate) {
             this._buffer = new Array(_size);

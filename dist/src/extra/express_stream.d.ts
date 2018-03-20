@@ -6,38 +6,31 @@ import { SubscriberInterface } from '../interfaces/subscriber_interface';
 export declare const EXPRESS_STREAM_REQUEST_MSG: Msg;
 export declare const EXPRESS_STREAM_ROUTE_REGISTERED_MSG: Msg;
 export declare const EXPRESS_STREAM_STARTED_MSG: Msg;
-export declare class ExpressStream extends Stream<Msg> {
+export declare class ExpressStream<T> extends Stream<Msg> {
     protected _app: express.Express;
     protected _routers: {
-        [key: string]: ExpressRouterStream;
+        [key: string]: express.Router;
     };
+    protected _withPrefix: string;
     readonly app: express.Express;
-    handle(route: any, method?: string): ExpressRouteHandlerStream;
-    router(prefix?: string): ExpressRouterStream;
+    getExpressRouter(prefix: string): express.Router;
+    handle(route: any, method?: string): ExpressHandlerStream<T>;
     start(port?: number): this;
+    withPrefix(prefix: string): this;
 }
-export declare class ExpressRouterStream extends Stream<ExpressSessionStream> {
-    protected _stream: ExpressStream;
-    protected _prefix: string;
-    protected _router: express.Router;
-    constructor(_stream: ExpressStream, _prefix?: string);
-    handle(route: any, method?: string): ExpressRouteHandlerStream;
-    start(): this;
+export declare class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string & T>> {
+    protected _stream: ExpressStream<T>;
+    constructor(_stream: ExpressStream<T>);
+    handle(route: any, method?: string): ExpressHandlerStream<T>;
+    withPrefix(prefix: string): ExpressStream<T>;
     extractBody(): this;
     extractForm(): this;
     extractJson(): this;
 }
-export declare class ExpressRouteHandlerStream extends Stream<ExpressSessionStream> {
-    protected _routerStream: ExpressRouterStream;
-    constructor(_routerStream: ExpressRouterStream);
-    readonly router: ExpressRouterStream;
-    extractBody(): this;
-    extractForm(): this;
-    extractJson(): this;
-}
-export declare class ExpressSessionStream extends Stream<any> {
+export declare class ExpressSessionStream<T> extends Stream<T> {
     protected _req: express.Request;
     protected _res: express.Response;
+    body: T;
     constructor(_req: express.Request, _res: express.Response);
     readonly req: express.Request;
     readonly res: express.Response;

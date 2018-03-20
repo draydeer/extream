@@ -1,7 +1,6 @@
 import { Delegate } from "./delegate";
 import { Stream } from "./stream";
 import { StreamInterface } from "./interfaces/stream_interface";
-import { OnData, OnError } from "./types";
 export declare class Executor<T> extends Stream<T> implements Promise<T> {
     protected _async: (agent: Delegate<T>) => Promise<T>;
     protected _delegate: Delegate<T>;
@@ -20,6 +19,6 @@ export declare class Executor<T> extends Stream<T> implements Promise<T> {
     pipeOutgoingTo(...streams: StreamInterface<T>[]): this;
     pipeToIncoming(...streams: StreamInterface<T>[]): this;
     run(): this;
-    catch(onrejected?: OnError<T>): Promise<T>;
-    then(onfulfilled?: OnData<T>): Promise<T>;
+    catch(onrejected?: (error) => any): Promise<T>;
+    then(onfulfilled?: (data: T) => any): Promise<T>;
 }
