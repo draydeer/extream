@@ -14,6 +14,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
     protected _isProgressive: boolean;
+    protected _isShared: boolean;
     protected _isSynchronized: boolean;
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
@@ -31,6 +32,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly compatible: this;
     readonly isCompleted: boolean;
     readonly isPaused: boolean;
+    readonly isShared: boolean;
     readonly lastValue: T;
     readonly root: this;
     readonly subscribers: SubscriberInterface<T>[];
@@ -45,6 +47,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
     error(error: any, subscribers?: SubscriberInterface<T>[]): this;
+    shared(): this;
     fork(): this;
     /**
      * Pauses stream stopping processing of emitted values.

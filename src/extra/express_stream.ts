@@ -105,7 +105,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
     public extractForm(): this {
         this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
             try {
-                session.body = qs.parse(session.body);
+                session.body = <any>qs.parse(session.body);
 
                 return session;
             } catch (err) {

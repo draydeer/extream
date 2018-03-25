@@ -86,13 +86,13 @@ function stop(title, ops) {
     try {
         const exp = new ExpressStream();
 
-        exp/*.filter((msg) => msg.type === 'started')*/.subscribe((msg) => console.log(msg));
+        exp/*.filter((msg) => msg.type === 'started')*///.subscribe((msg) => console.log(msg));
 
         const router = exp.handle('/test').extractBody().extractForm();
 
         router.subscribe(
             (session) => {
-                console.log(session.body);
+                //console.log(session.body);
 
                 session.emit('123').complete();
             },
