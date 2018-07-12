@@ -5,11 +5,13 @@ import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
 import {Storage} from './storage';
 import {Subscriber, UnsafeSubscriber} from "./subscriber";
-import {StreamMiddleware, OnComplete, OnData, OnError} from "./types";
+import {StreamMiddleware, OnCompleteOrStream, OnDataOrStream, OnErrorOrStream} from "./types";
 import {PromiseOrT} from "./types";
 import {ResourceInterface} from './interfaces/resource_interface';
 import {StreamIsCompletedError} from './errors';
 import {TimerResource} from './resource';
+
+const SHARED_SUBSCRIBER_TAG = 0;
 
 /**
  * Stream.
@@ -40,11 +42,7 @@ export class Stream<T> implements StreamInterface<T> {
     public static fromPromise<T>(promise: Promise<T>): StreamInterface<T> {
         const stream: StreamInterface<T> = new Stream<T>();
 
-        promise.then(
-            stream.emitAndComplete.bind(stream)
-        ).catch(
-            stream.error.bind(stream)
-        );
+        promise.then(stream.emitAndComplete.bind(stream)).catch(stream.error.bind(stream));
 
         return stream;
     }
@@ -63,10 +61,6 @@ export class Stream<T> implements StreamInterface<T> {
 
     public constructor() {
 
-    }
-
-    public get compatible(): this {
-        return new Stream<T>() as this;
     }
 
     public get isCompleted(): boolean {
@@ -99,6 +93,10 @@ export class Stream<T> implements StreamInterface<T> {
 
     public get transmittedCount(): number {
         return this._transmittedCount;
+    }
+
+    public getCompatible(): this {
+        return new Stream<T>() as this;
     }
 
     public setRoot(stream: StreamInterface<T>): this {
@@ -169,7 +167,7 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     public fork(): this {
-        let stream = this.compatible;
+        let stream = this.getCompatible();
 
         this.subscribeStream(stream);
 
@@ -230,19 +228,29 @@ export class Stream<T> implements StreamInterface<T> {
         return this;
     }
 
-    public subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T> {
-        return this._subscriberAdd(new Subscriber<T>(this, onData, onError, onComplete));
+    public subscribe(onData?: OnDataOrStream<T>, onError?: OnErrorOrStream<T>, onComplete?: OnCompleteOrStream<T>): SubscriberInterface<T> {
+        return this._subscriberAdd(new Subscriber<T>(
+            this,
+            onData instanceof Stream ? onData.emit.bind(onData) : onData,
+            onError instanceof Stream ? onError.error.bind(onError) : onError,
+            onComplete instanceof Stream ? onComplete.complete.bind(onComplete) : onComplete,
+        ));
     }
 
-    public subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T> {
-        return this._subscriberAdd(new Subscriber<T>(this, void 0, void 0, onComplete));
+    public subscribeOnComplete(onComplete?: OnCompleteOrStream<T>): SubscriberInterface<T> {
+        return this._subscriberAdd(new Subscriber<T>(
+            this,
+            void 0,
+            void 0,
+            onComplete instanceof Stream ? onComplete.complete.bind(onComplete) : onComplete,
+        ));
     }
 
     public subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T> {
         const subscription = this.subscribe(
-            (data, s, subscribers) => stream.emit(data, subscribers),
-            (error, s, subscribers) => stream.error(error, subscribers),
-            (s, subscribers) => stream.complete(subscribers)
+            stream.emit.bind(stream),
+            stream.error.bind(stream),
+            stream.complete.bind(stream)
         );
 
         stream.subscribeOnComplete(subscription.unsubscribe.bind(subscription));
@@ -498,7 +506,7 @@ export class Stream<T> implements StreamInterface<T> {
             return this;
         }
 
-        const stream = this.compatible.setRoot(this.root)._middlewareAdd(middleware);
+        const stream = this.getCompatible().setRoot(this.root)._middlewareAdd(middleware);
 
         this._subscriberAdd(new UnsafeSubscriber<T>(
             this,
@@ -546,10 +554,12 @@ export class Stream<T> implements StreamInterface<T> {
 
     protected _subscriberAdd(subscriber: SubscriberInterface<T>): SubscriberInterface<T> {
         if (! this._subscribers) {
-            this._subscribers = new Storage();
+            this._subscribers = new Storage(10, 1);
         }
 
-        this._subscribers.add(this.onSubscriberAdd(subscriber));
+        this._subscribers.add(
+            this.onSubscriberAdd(subscriber), subscriber.isShared ? SHARED_SUBSCRIBER_TAG : void 0
+        );
 
         return subscriber;
     }
@@ -559,13 +569,34 @@ export class Stream<T> implements StreamInterface<T> {
            return this;
         }
 
-        this._subscribers.delete(this.onSubscriberRemove(subscriber));
+        this._subscribers.delete(
+            this.onSubscriberRemove(subscriber), subscriber.isShared ? SHARED_SUBSCRIBER_TAG : void 0
+        );
 
         return this._isAutocomplete && this.subscribersCount === 0 ? this._shutdown() : this;
     }
 
     protected _subscriberOnComplete(subscribers?: SubscriberInterface<T>[]): this {
-        if (this._subscribers) {
+        if (subscribers) {
+            for (const subscriber of subscribers) {
+                if (subscriber.stream === this) {
+                    subscriber.doComplete(subscribers);
+                }
+            }
+
+            // trigger shared also
+            if (this._subscribers) {
+                const sharedSubscribers = this._subscribers.getTagged(SHARED_SUBSCRIBER_TAG);
+
+                if (sharedSubscribers) {
+                    for (const subscriber of sharedSubscribers.storage) {
+                        if (subscriber) {
+                            subscriber.doComplete(subscribers);
+                        }
+                    }
+                }
+            }
+        } else if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
                 if (subscriber) {
                     subscriber.doComplete(subscribers);
@@ -577,7 +608,26 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberOnData(data: T, subscribers?: SubscriberInterface<T>[]): this {
-        if (this._subscribers) {
+        if (subscribers) {
+            for (const subscriber of subscribers) {
+                if (subscriber.stream === this) {
+                    subscriber.doData(data, subscribers);
+                }
+            }
+
+            // trigger shared also
+            if (this._subscribers) {
+                const sharedSubscribers = this._subscribers.getTagged(SHARED_SUBSCRIBER_TAG);
+
+                if (sharedSubscribers) {
+                    for (const subscriber of sharedSubscribers.storage) {
+                        if (subscriber) {
+                            subscriber.doData(data, subscribers);
+                        }
+                    }
+                }
+            }
+        } else if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
                 if (subscriber) {
                     subscriber.doData(data, subscribers);
@@ -589,7 +639,26 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     protected _subscriberOnError(error: any, subscribers?: SubscriberInterface<T>[]): this {
-        if (this._subscribers) {
+        if (subscribers) {
+            for (const subscriber of subscribers) {
+                if (subscriber.stream === this) {
+                    subscriber.doError(error, subscribers);
+                }
+            }
+
+            // trigger shared also
+            if (this._subscribers) {
+                const sharedSubscribers = this._subscribers.getTagged(SHARED_SUBSCRIBER_TAG);
+
+                if (sharedSubscribers) {
+                    for (const subscriber of sharedSubscribers.storage) {
+                        if (subscriber) {
+                            subscriber.doError(error, subscribers);
+                        }
+                    }
+                }
+            }
+        } else if (this._subscribers) {
             for (const subscriber of this._subscribers.storage) {
                 if (subscriber) {
                     subscriber.doError(error, subscribers);

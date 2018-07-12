@@ -6,7 +6,7 @@ export class MathStream extends Stream<number> {
         super();
     }
 
-    public get compatible(): this {
+    public getCompatible(): this {
         return new MathStream() as this;
     }
 

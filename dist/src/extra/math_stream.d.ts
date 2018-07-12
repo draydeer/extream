@@ -2,7 +2,7 @@ import { Stream } from "../stream";
 export declare class MathStream extends Stream<number> {
     protected _accumulator: number;
     constructor(_accumulator?: number);
-    readonly compatible: this;
+    getCompatible(): this;
     abs(): this;
     average(): this;
     ceil(): this;

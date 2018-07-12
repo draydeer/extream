@@ -28,8 +28,30 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         return this._id;
     }
 
+    public get isShared() {
+        return false;
+    }
+
     public get stream(): StreamInterface<T> {
         return this._stream;
+    }
+
+    public complete(): this {
+        this._stream.root.complete([this]);
+
+        return this;
+    }
+
+    public emit(data: T): this {
+        this._stream.root.emit(data, [this]);
+
+        return this;
+    }
+
+    public error(error: any): this {
+        this._stream.root.error(error, [this]);
+
+        return this;
     }
 
     public unsubscribe(): this {
@@ -58,7 +80,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         this._processMiddleware();
 
         if (this._onComplete) {
-            this._onComplete(this._stream, subscribers);
+            this._onComplete(subscribers);
         }
 
         return this.unsubscribe();
@@ -68,7 +90,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         data = this._processMiddleware(data);
 
         if (this._onData) {
-            this._onData(data, this._stream, subscribers);
+            this._onData(data, subscribers);
         }
 
         return this;
@@ -78,7 +100,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
         this._processMiddleware(error);
 
         if (this._onError) {
-            this._onError(this._stream, error, subscribers);
+            this._onError(error, subscribers);
         }
 
         return this;
@@ -100,7 +122,6 @@ export class Subscriber<T> implements SubscriberInterface<T> {
 export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
 
     protected _id: string;
-    protected _isIsolated: boolean;
     protected _middleware;
     protected _onComplete: OnComplete<T>;
     protected _onData: OnData<T>;
@@ -120,7 +141,7 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
         return this._id;
     }
 
-    public get isIsolated() {
+    public get isShared() {
         return true;
     }
 
@@ -128,8 +149,20 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
         return this._stream;
     }
 
-    public isolated(): this {
-        this._isIsolated = true;
+    public complete(): this {
+        this._stream.root.complete([this]);
+
+        return this;
+    }
+
+    public emit(data: T): this {
+        this._stream.root.emit(data, [this]);
+
+        return this;
+    }
+
+    public error(error: any): this {
+        this._stream.root.error(error, [this]);
 
         return this;
     }
@@ -151,19 +184,19 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     }
 
     public doComplete(subscribers?: SubscriberInterface<T>[]): this {
-        this._onComplete(this._stream, subscribers);
+        this._onComplete(subscribers);
 
         return this.unsubscribe();
     }
 
     public doData(data: T, subscribers?: SubscriberInterface<T>[]): this {
-        this._onData(data, this._stream, subscribers);
+        this._onData(data, subscribers);
 
         return this;
     }
 
     public doError(error: any, subscribers?: SubscriberInterface<T>[]): this {
-        this._onError(error, this._stream, subscribers);
+        this._onError(error, subscribers);
 
         return this;
     }

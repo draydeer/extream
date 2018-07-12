@@ -8,7 +8,7 @@ export interface FetchStreamInterface<T> extends StreamInterface<T> {
     extractText(): this;
 }
 export declare class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
-    readonly compatible: this;
+    getCompatible(): this;
     extractBlob(): this;
     extractFormData(): this;
     extractJson(): this;

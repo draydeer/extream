@@ -21,11 +21,17 @@ export declare class ExpressStream<T> extends Stream<Msg> {
 export declare class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string & T>> {
     protected _stream: ExpressStream<T>;
     constructor(_stream: ExpressStream<T>);
+    getCompatible(): this;
     handle(route: any, method?: string): ExpressHandlerStream<T>;
     withPrefix(prefix: string): ExpressStream<T>;
+    contentType(contentType: string): this;
     extractBody(): this;
     extractForm(): this;
     extractJson(): this;
+    json(): this;
+    jsonp(): this;
+    send(): this;
+    status(status: number): this;
 }
 export declare class ExpressSessionStream<T> extends Stream<T> {
     protected _req: express.Request;

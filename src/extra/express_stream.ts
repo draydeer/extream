@@ -4,6 +4,8 @@ import {CANCELLED} from '../const';
 import {Msg, makeBy} from '../msg';
 import {Stream} from "../stream";
 import {SubscriberInterface} from '../interfaces/subscriber_interface';
+import {PromiseOrT} from '../types';
+import {StreamInterface} from '../interfaces/stream_interface';
 
 export const EXPRESS_STREAM_REQUEST_MSG: Msg = {type: 'request'};
 export const EXPRESS_STREAM_ROUTE_REGISTERED_MSG: Msg = {type: 'routeRegistered'};
@@ -58,7 +60,7 @@ export class ExpressStream<T> extends Stream<Msg> {
     public start(port: number = 8080): this {
         Object.keys(this._routers).forEach((key) => this._app.use(key, this._routers[key]));
 
-        this._app.listen(port, () => this.emit(EXPRESS_STREAM_STARTED_MSG));
+        this._app.listen(port, () => super.emit(EXPRESS_STREAM_STARTED_MSG));
 
         return this;
     }
@@ -77,6 +79,10 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
         super();
     }
 
+    public getCompatible(): this {
+        return new ExpressHandlerStream<T>(this._stream) as this;
+    }
+
     public handle(route, method='get'): ExpressHandlerStream<T> {
         return this._stream.handle(route, method);
     }
@@ -86,6 +92,22 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
     }
 
     // middlewares
+
+    public contentType(contentType: string): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            try {
+                session.res.contentType(contentType);
+
+                return session;
+            } catch (err) {
+                this.error(err);
+
+                return CANCELLED;
+            }
+        });
+
+        return this;
+    }
 
     public extractBody(): this {
         this._middlewareAdd((data: ExpressSessionStream<string & T>, stream, subscribers, middlewareIndex, cb) => {
@@ -122,6 +144,70 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
         this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
             try {
                 session.body = JSON.parse(session.body);
+
+                return session;
+            } catch (err) {
+                this.error(err);
+
+                return CANCELLED;
+            }
+        });
+
+        return this;
+    }
+
+    public json(): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            try {
+                session.res.json(session.body);
+
+                return session;
+            } catch (err) {
+                this.error(err);
+
+                return CANCELLED;
+            }
+        });
+
+        return this;
+    }
+
+    public jsonp(): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            try {
+                session.res.jsonp(session.body);
+
+                return session;
+            } catch (err) {
+                this.error(err);
+
+                return CANCELLED;
+            }
+        });
+
+        return this;
+    }
+
+    public send(): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            try {
+                session.res.send(session.body);
+
+                return session;
+            } catch (err) {
+                this.error(err);
+
+                return CANCELLED;
+            }
+        });
+
+        return this;
+    }
+
+    public status(status: number): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            try {
+                session.res.status(status);
 
                 return session;
             } catch (err) {

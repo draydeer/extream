@@ -2,7 +2,7 @@ import { BufferInterface } from "./interfaces/buffer_interface";
 import { StreamInterface } from "./interfaces/stream_interface";
 import { SubscriberInterface } from "./interfaces/subscriber_interface";
 import { Storage } from './storage';
-import { StreamMiddleware, OnComplete, OnData, OnError } from "./types";
+import { StreamMiddleware, OnCompleteOrStream, OnDataOrStream, OnErrorOrStream } from "./types";
 import { PromiseOrT } from "./types";
 import { ResourceInterface } from './interfaces/resource_interface';
 /**
@@ -29,7 +29,6 @@ export declare class Stream<T> implements StreamInterface<T> {
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
-    readonly compatible: this;
     readonly isCompleted: boolean;
     readonly isPaused: boolean;
     readonly isShared: boolean;
@@ -38,6 +37,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     readonly subscribers: SubscriberInterface<T>[];
     readonly subscribersCount: number;
     readonly transmittedCount: number;
+    getCompatible(): this;
     setRoot(stream: StreamInterface<T>): this;
     /**
      * Enables automatic completion of stream if count of subscribers becomes zero.
@@ -73,8 +73,8 @@ export declare class Stream<T> implements StreamInterface<T> {
      *
      */
     synchronized(): this;
-    subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T>;
-    subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
+    subscribe(onData?: OnDataOrStream<T>, onError?: OnErrorOrStream<T>, onComplete?: OnCompleteOrStream<T>): SubscriberInterface<T>;
+    subscribeOnComplete(onComplete?: OnCompleteOrStream<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
     await(): this;

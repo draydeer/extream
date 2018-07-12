@@ -84,23 +84,32 @@ function stop(title, ops) {
 
 (async () => {
     try {
+        const sss = new Stream<any>().map((d) => d * 5);
+
+        sss.subscribe((d) => console.log('1', d));
+        sss.subscribe((d) => console.log('2', d)).once().emit(2);
+
         const exp = new ExpressStream();
 
-        exp/*.filter((msg) => msg.type === 'started')*///.subscribe((msg) => console.log(msg));
+        exp.subscribe((msg) => console.log(msg));
 
-        const router = exp.handle('/test').extractBody().extractForm();
+        const router = exp.handle('/test').extractBody().extractForm().map((session) => {
+            session.body = 'ok!';
 
-        router.subscribe(
-            (session) => {
-                //console.log(session.body);
+            return session;
+        }).jsonp();
 
-                session.emit('123').complete();
-            },
-            (err) => {
-
-            }
-        );
-        router.subscribe((session) => null);
+        // router.subscribe(
+        //     (session) => {
+        //         console.log(session.body);
+        //
+        //         session.emit('123').complete();
+        //     },
+        //     (err) => {
+        //
+        //     }
+        // );
+        // router.subscribe((session) => null);
 
         exp.start(12345);
 
@@ -114,15 +123,17 @@ function stop(title, ops) {
           //     error: new Stream<any>()
           //         .map((data) => 'not ok')
           // };
-
-           // const fs = FetchStream.get<any>('https://google.com', 'test')
-           //    .select((response) => response.ok ? 'ok' : 'error', select);
-           //
-           // fs.subscribe((data) => {
-           //    console.log(data);
-           // }, (err) => {
-           //    console.error('error', err);
-           // });
+          //
+          // select.ok.subscribe((data) => console.log('DATA!!!!'), () => console.log('ERRPR!!!'));
+          //
+          //  const fs = FetchStream.get<any>('https://google.com', 'test')
+          //     .select((response) => response.ok ? 'ok' : 'error', select);
+          //
+          //  fs.subscribe((data) => {
+          //     console.log(data);
+          //  }, (err) => {
+          //     console.error('error', err);
+          //  });
 
         // const fs = FetchStream.get<any>('https://google.com', 'test')
         //     .redirect((response) => response.ok ? 'ok' : 'error', select);
@@ -151,23 +162,23 @@ function stop(title, ops) {
         // ms.emit(2);
         // ms.emit(3);
 
-         //const stor = new Storage();
+         // const stor = new Storage(10, 1);
          //
-         //start();
+         // start();
          //
-         //for (let j = 0; j < 1000000; j ++) {
+         // for (let j = 0; j < 1000000; j ++) {
          //    for (let i = 0; i < 10; i++) {
-         //        stor.add(i);
+         //        stor.add(i, 0);
          //    }
          //
          //    for (let i = 3; i < 9; i++) {
-         //        stor.delete(i);
+         //        stor.delete(i, 0);
          //    }
-         //}
+         // }
          //
-         //stop('ok', 1000000);
+         // stop('ok', 1000000);
          //
-         //console.log(stor);
+         // console.log(stor);
 
         // const s2 = new Stream<string>()
         //    .progressive()
@@ -195,10 +206,10 @@ function stop(title, ops) {
         //
         //  ms
         //     .progressive()
-        //     // .sum()
-        //     // .average()
-        //     // .sqrt()
-        //     // .round();
+        //     .sum()
+        //     .average()
+        //     //.sqrt()
+        //     .round();
         //  ;
         //
         // ms.subscribe((data) => {
@@ -215,7 +226,7 @@ function stop(title, ops) {
         //
         //  start();
         //
-        //  for (let i = 0; i < 3000000000; i ++) {
+        //  for (let i = 0; i < 3000000; i ++) {
         //    ms.emit(i);
         //  }
         //
@@ -227,7 +238,7 @@ function stop(title, ops) {
         //  ms.emit(4);
         //  ms.emit(5);
         //
-        //  stop('ok', 3000000000);
+        //  stop('ok', 3000000);
         //
         //  console.log(ms.lastValue);
 

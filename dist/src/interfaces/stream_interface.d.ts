@@ -2,7 +2,7 @@ import { SubscriberInterface } from "./subscriber_interface";
 import { OnComplete, OnData, OnError, PromiseOrT } from "../types";
 export interface StreamInterface<T> {
     readonly isCompleted: boolean;
-    readonly compatible: this;
+    readonly isShared: boolean;
     readonly root: this;
     readonly subscribers: SubscriberInterface<T>[];
     autocomplete(): this;
@@ -18,6 +18,7 @@ export interface StreamInterface<T> {
     filter(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     first(): this;
     fork(): this;
+    getCompatible(): this;
     pause(): this;
     progressive(): this;
     redirect(selector: (data: T) => string, streams: {
@@ -29,6 +30,7 @@ export interface StreamInterface<T> {
         [key: string]: StreamInterface<T>;
     }): this;
     setRoot(stream: StreamInterface<T>): this;
+    shared(): this;
     subscribe(onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeOnComplete(onComplete?: OnComplete<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;

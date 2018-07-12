@@ -12,7 +12,7 @@ export interface FetchStreamInterface<T> extends StreamInterface<T> {
 
 export class FetchResponseStream<T> extends Stream<T> implements FetchStreamInterface<T> {
 
-    public get compatible(): this {
+    public getCompatible(): this {
         return new FetchResponseStream<T>() as this;
     }
 

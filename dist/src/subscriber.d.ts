@@ -13,7 +13,11 @@ export declare class Subscriber<T> implements SubscriberInterface<T> {
     protected _stream: StreamInterface<T>;
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
+    readonly isShared: boolean;
     readonly stream: StreamInterface<T>;
+    complete(): this;
+    emit(data: T): this;
+    error(error: any): this;
     unsubscribe(): this;
     once(): this;
     doComplete(subscribers?: SubscriberInterface<T>[]): this;
@@ -26,7 +30,6 @@ export declare class Subscriber<T> implements SubscriberInterface<T> {
  */
 export declare class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     protected _id: string;
-    protected _isIsolated: boolean;
     protected _middleware: any;
     protected _onComplete: OnComplete<T>;
     protected _onData: OnData<T>;
@@ -34,9 +37,11 @@ export declare class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     protected _stream: StreamInterface<T>;
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
-    readonly isIsolated: boolean;
+    readonly isShared: boolean;
     readonly stream: StreamInterface<T>;
-    isolated(): this;
+    complete(): this;
+    emit(data: T): this;
+    error(error: any): this;
     unsubscribe(): this;
     once(): this;
     doComplete(subscribers?: SubscriberInterface<T>[]): this;
