@@ -55,7 +55,7 @@ var Executor = /** @class */ (function (_super) {
         configurable: true
     });
     Executor.prototype.complete = function () {
-        this._incomingStream.error(const_1.COMPLETED);
+        this._incomingStream.error(const_1.Completed);
         return _super.prototype.complete.call(this);
     };
     Executor.prototype.emit = function (data) {

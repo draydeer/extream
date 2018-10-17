@@ -47,7 +47,7 @@ export class CyclicBuffer<T> implements BufferInterface<T> {
             this._buffer[this._headIndex % this._size] = data;
         }
 
-        this._headIndex ++;
+        this._headIndex += 1;
 
         return this;
     }
@@ -78,7 +78,7 @@ export class CyclicBuffer<T> implements BufferInterface<T> {
         const data = this._buffer[this._tailIndex % this._size];
 
         this._buffer[this._tailIndex % this._size] = null;
-        this._tailIndex ++;
+        this._tailIndex += 1;
 
         return data;
     }

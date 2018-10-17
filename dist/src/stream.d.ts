@@ -10,6 +10,7 @@ import { ResourceInterface } from './interfaces/resource_interface';
  */
 export declare class Stream<T> implements StreamInterface<T> {
     protected _isAutocomplete: boolean;
+    protected _isCold: boolean;
     protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -19,13 +20,13 @@ export declare class Stream<T> implements StreamInterface<T> {
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
-    protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
-    protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _inpBuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _outBuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _resources: ResourceInterface<any>[];
     protected _root: StreamInterface<T>;
     protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number;
-    static readonly COMPLETED: Error;
+    static readonly COMPLETED: {};
     static fromPromise<T>(promise: Promise<T>): StreamInterface<T>;
     static merge<T>(...asyncs: (Promise<T> | StreamInterface<T>)[]): StreamInterface<T>;
     constructor();
@@ -42,7 +43,11 @@ export declare class Stream<T> implements StreamInterface<T> {
     /**
      * Enables automatic completion of stream if count of subscribers becomes zero.
      */
-    autocomplete(): this;
+    autoComplete(): this;
+    /**
+     *
+     */
+    cold(): this;
     complete(subscribers?: SubscriberInterface<T>[]): this;
     emit(data: T, subscribers?: SubscriberInterface<T>[]): this;
     emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this;
@@ -54,13 +59,13 @@ export declare class Stream<T> implements StreamInterface<T> {
      */
     pause(): this;
     /**
-     * Initiates post buffer where emitted and processed values will be stored before to be sent to subscribers.
+     * Initiates input buffer where emitted values will be stored before to be processed.
      */
-    postbuffer(size?: number): this;
+    inpBuffer(size?: number): this;
     /**
-     * Initiates pre buffer where emitted values will be stored before to be processed.
+     * Initiates output buffer where emitted and processed values will be stored before to be sent to subscribers.
      */
-    prebuffer(size?: number): this;
+    outBuffer(size?: number): this;
     /**
      * Enables progressive mode when added middleware will be chained inside current stream instead initiate new one.
      */
@@ -77,6 +82,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     subscribeOnComplete(onComplete?: OnCompleteOrStream<T>): SubscriberInterface<T>;
     subscribeStream(stream: StreamInterface<T>): SubscriberInterface<T>;
     unsubscribe(subscriber: SubscriberInterface<T>): this;
+    /** Checks is data is async and plans its postponed emission */
     await(): this;
     /** Continues processing after expiration of  */
     debounce(seconds: number): this;
@@ -100,6 +106,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     select(selector: (data: T) => string, streams: {
         [key: string]: StreamInterface<T>;
     }): this;
+    /** Opposite to "filter" */
     skip(middleware: T | ((data: T, stream?: StreamInterface<T>) => boolean)): this;
     /** Continues processing after expiration of  */
     throttle(seconds: number): this;
@@ -111,7 +118,7 @@ export declare class Stream<T> implements StreamInterface<T> {
     toPromise(): Promise<T>;
     protected _assertReady(): this;
     protected _emitLoop(subscribers: any, middlewareIndex: any, cb: any, data: any): any;
-    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean): this;
+    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean, tag?: string): this;
     protected _middlewareAfterDispatchAdd(middleware: StreamMiddleware<T>): StreamMiddleware<T>;
     protected _resourceAdd(resource: ResourceInterface<any>): ResourceInterface<any>;
     protected _shutdown(): this;

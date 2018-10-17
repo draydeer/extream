@@ -35,10 +35,13 @@ export declare class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     protected _onData: OnData<T>;
     protected _onError: OnError<T>;
     protected _stream: StreamInterface<T>;
+    protected _tag: string;
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>);
     readonly id: string;
     readonly isShared: boolean;
     readonly stream: StreamInterface<T>;
+    readonly tag: string;
+    setTag(tag: string): this;
     complete(): this;
     emit(data: T): this;
     error(error: any): this;

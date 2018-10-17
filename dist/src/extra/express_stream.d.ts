@@ -3,6 +3,8 @@ import * as express from 'express';
 import { Msg } from '../msg';
 import { Stream } from "../stream";
 import { SubscriberInterface } from '../interfaces/subscriber_interface';
+import { PromiseOrT } from '../types';
+import { StreamInterface } from '../interfaces/stream_interface';
 export declare const EXPRESS_STREAM_REQUEST_MSG: Msg;
 export declare const EXPRESS_STREAM_ROUTE_REGISTERED_MSG: Msg;
 export declare const EXPRESS_STREAM_STARTED_MSG: Msg;
@@ -24,6 +26,7 @@ export declare class ExpressHandlerStream<T> extends Stream<ExpressSessionStream
     getCompatible(): this;
     handle(route: any, method?: string): ExpressHandlerStream<T>;
     withPrefix(prefix: string): ExpressStream<T>;
+    body(middleware: (data: any, stream?: StreamInterface<any>) => PromiseOrT<any>): this;
     contentType(contentType: string): this;
     extractBody(): this;
     extractForm(): this;

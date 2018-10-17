@@ -91,13 +91,16 @@ function stop(title, ops) {
 
         const exp = new ExpressStream();
 
-        exp.subscribe((msg) => console.log(msg));
+        exp.subscribe((msg) => msg);
 
-        const router = exp.handle('/test').extractBody().extractForm().map((session) => {
-            session.body = 'ok!';
-
-            return session;
+        const router = exp.handle('/test').extractBody().extractForm().body((session, s) => {
+            s.error('error');
+            //return 'ok!';
         }).jsonp();
+
+        router.subscribe(router.jsonp.bind(router), (e) => {
+            router.body(e).jsonp();
+        });
 
         // router.subscribe(
         //     (session) => {
@@ -166,12 +169,12 @@ function stop(title, ops) {
          //
          // start();
          //
-         // for (let j = 0; j < 1000000; j ++) {
-         //    for (let i = 0; i < 10; i++) {
+         // for (let j = 0; j < 1000000; j += 1) {
+         //    for (let i = 0; i < 10; i+= 1) {
          //        stor.add(i, 0);
          //    }
          //
-         //    for (let i = 3; i < 9; i++) {
+         //    for (let i = 3; i < 9; i+= 1) {
          //        stor.delete(i, 0);
          //    }
          // }
@@ -226,11 +229,11 @@ function stop(title, ops) {
         //
         //  start();
         //
-        //  for (let i = 0; i < 3000000; i ++) {
+        //  for (let i = 0; i < 3000000; i += 1) {
         //    ms.emit(i);
         //  }
         //
-        //  ms.prebuffer(5);
+        //  ms.outBuffer(5);
         //
         //  ms.emit(1);
         //  ms.emit(2);
@@ -247,7 +250,7 @@ function stop(title, ops) {
         // const st = new Stream();
         // const s2 = st.debug((data) => data).debug((data) => data);
         //
-        // for (let i = 0; i < 1000000; i ++) {
+        // for (let i = 0; i < 1000000; i += 1) {
         //     st.emit(i);
         // }
         //

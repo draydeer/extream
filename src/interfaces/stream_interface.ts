@@ -7,8 +7,9 @@ export interface StreamInterface<T> {
     readonly root: this;
     readonly subscribers: SubscriberInterface<T>[];
 
-    autocomplete(): this;
+    autoComplete(): this;
     await(): this;
+    cold(): this;
     complete(subscribers?: SubscriberInterface<T>[]): this;
     debounce(seconds: number): this;
     debug(callback: (data: T, stream?: StreamInterface<T>) => void): this;

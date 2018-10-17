@@ -17,7 +17,7 @@ export class Subscriber<T> implements SubscriberInterface<T> {
     protected _stream: StreamInterface<T>;
 
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>) {
-        this._id = String(ID ++);
+        this._id = String(ID += 1);
         this._onComplete = onComplete;
         this._onError = onError;
         this._onData = onData;
@@ -127,13 +127,14 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
     protected _onData: OnData<T>;
     protected _onError: OnError<T>;
     protected _stream: StreamInterface<T>;
+    protected _tag: string;
 
     constructor(stream: StreamInterface<T>, onData?: OnData<T>, onError?: OnError<T>, onComplete?: OnComplete<T>) {
         this._onComplete = onComplete;
         this._onData = onData;
         this._onError = onError;
 
-        this._id = String(ID ++);
+        this._id = String(ID += 1);
         this._stream = stream;
     }
 
@@ -147,6 +148,16 @@ export class UnsafeSubscriber<T> implements SubscriberInterface<T> {
 
     public get stream(): StreamInterface<T> {
         return this._stream;
+    }
+
+    public get tag(): string {
+        return this._tag;
+    }
+
+    public setTag(tag: string): this {
+        this._tag = tag;
+
+        return this;
     }
 
     public complete(): this {

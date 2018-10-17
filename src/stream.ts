@@ -1,5 +1,5 @@
 import {CyclicBuffer} from "./buffer";
-import {CANCELLED, COMPLETED} from "./const";
+import {Cancelled, Completed} from "./const";
 import {BufferInterface} from "./interfaces/buffer_interface";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
@@ -19,6 +19,7 @@ const SHARED_SUBSCRIBER_TAG = 0;
 export class Stream<T> implements StreamInterface<T> {
 
     protected _isAutocomplete: boolean;
+    protected _isCold: boolean;
     protected _isCompleted: boolean;
     protected _isPaused: boolean;
     protected _isProcessing: boolean;
@@ -28,15 +29,15 @@ export class Stream<T> implements StreamInterface<T> {
     protected _lastValue: T;
     protected _middlewares: StreamMiddleware<T>[];
     protected _middlewaresAfterDispatch: StreamMiddleware<T>[];
-    protected _postbuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
-    protected _prebuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _inpBuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
+    protected _outBuffer: BufferInterface<[T, SubscriberInterface<T>[]]>;
     protected _resources: ResourceInterface<any>[];
     protected _root: StreamInterface<T>;
     protected _subscribers: Storage<SubscriberInterface<T>>;
     protected _transmittedCount: number = 0;
 
-    public static get COMPLETED(): Error {
-        return COMPLETED;
+    public static get COMPLETED(): {} {
+        return Completed;
     };
 
     public static fromPromise<T>(promise: Promise<T>): StreamInterface<T> {
@@ -110,8 +111,17 @@ export class Stream<T> implements StreamInterface<T> {
     /**
      * Enables automatic completion of stream if count of subscribers becomes zero.
      */
-    public autocomplete(): this {
+    public autoComplete(): this {
         this._isAutocomplete = true;
+
+        return this;
+    }
+
+    /**
+     *
+     */
+    public cold(): this {
+        this._isCold = true;
 
         return this;
     }
@@ -125,9 +135,9 @@ export class Stream<T> implements StreamInterface<T> {
     public emit(data: T, subscribers?: SubscriberInterface<T>[]): this {
         this._assertReady();
 
-        if (this._prebuffer) {
+        if (this._inpBuffer) {
             if (this._isProcessing) {
-                this._prebuffer.add([data, subscribers]);
+                this._inpBuffer.add([data, subscribers]);
             } else {
                 this._emitLoop(subscribers, 0, void 0, data);
             }
@@ -141,9 +151,9 @@ export class Stream<T> implements StreamInterface<T> {
     public emitAndComplete(data: T, subscribers?: SubscriberInterface<T>[]): this {
         this._assertReady();
 
-        if (this._prebuffer) {
+        if (this._inpBuffer) {
             if (this._isProcessing) {
-                this._prebuffer.add([data, subscribers]);
+                this._inpBuffer.add([data, subscribers]);
             } else {
                 this._emitLoop(subscribers, 0, this.complete.bind(this, subscribers), data);
             }
@@ -184,19 +194,19 @@ export class Stream<T> implements StreamInterface<T> {
     }
 
     /**
-     * Initiates post buffer where emitted and processed values will be stored before to be sent to subscribers.
+     * Initiates input buffer where emitted values will be stored before to be processed.
      */
-    public postbuffer(size: number = 10): this {
-        this._postbuffer = new CyclicBuffer(size);
+    public inpBuffer(size: number = 10): this {
+        this._inpBuffer = new CyclicBuffer(size);
 
         return this;
     }
 
     /**
-     * Initiates pre buffer where emitted values will be stored before to be processed.
+     * Initiates output buffer where emitted and processed values will be stored before to be sent to subscribers.
      */
-    public prebuffer(size: number = 10): this {
-        this._prebuffer = new CyclicBuffer(size);
+    public outBuffer(size: number = 10): this {
+        this._outBuffer = new CyclicBuffer(size);
 
         return this;
     }
@@ -264,6 +274,7 @@ export class Stream<T> implements StreamInterface<T> {
 
     // middlewares
 
+    /** Checks is data is async and plans its postponed emission */
     public await(): this {
         return this._middlewareAdd((data: T, stream, subscribers, middlewareIndex, cb) => {
             if (data instanceof Promise) {
@@ -272,14 +283,14 @@ export class Stream<T> implements StreamInterface<T> {
                     (error) => this._subscriberOnError(error, subscribers)
                 );
 
-                return CANCELLED;
+                return Cancelled;
             } else if (data instanceof Stream) {
                 data.subscribe(
                     this._emitLoop.bind(this, subscribers, middlewareIndex, cb),
                     (error) => this._subscriberOnError(error, subscribers)
                 );
 
-                return CANCELLED;
+                return Cancelled;
             }
 
             return data;
@@ -298,7 +309,7 @@ export class Stream<T> implements StreamInterface<T> {
                 .clear()
                 .open(() => this._emitLoop(subscribers, middlewareIndex, cb, cachedData), seconds);
 
-            return CANCELLED;
+            return Cancelled;
         });
     }
 
@@ -333,8 +344,8 @@ export class Stream<T> implements StreamInterface<T> {
     public filter(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this {
         return this._middlewareAdd(
             middleware instanceof Function
-                ? (data, stream) => middleware(data, stream) ? data : CANCELLED
-                : (data, stream) => middleware === data ? data : CANCELLED
+                ? (data, stream) => middleware(data, stream) ? data : Cancelled
+                : (data, stream) => middleware === data ? data : Cancelled
         );
     }
 
@@ -362,7 +373,7 @@ export class Stream<T> implements StreamInterface<T> {
             if (index in streams) {
                 streams[index].root.emit(data, subscribers);
 
-                return CANCELLED;
+                return Cancelled;
             }
 
             throw new Error(`"redirect" middleware got invalid index from selector: ${index}`);
@@ -390,18 +401,19 @@ export class Stream<T> implements StreamInterface<T> {
 
                 streams[index].root.emit(data, [subscriber]);
 
-                return CANCELLED;
+                return Cancelled;
             }
 
             throw new Error(`"select" middleware got invalid index from selector: ${index}`);
         });
     }
 
+    /** Opposite to "filter" */
     public skip(middleware: T|((data: T, stream?: StreamInterface<T>) => boolean)): this {
         return this._middlewareAdd(
             middleware instanceof Function
-                ? (data, stream) => middleware(data, stream) ? CANCELLED : data
-                : (data, stream) => middleware === data ? CANCELLED : data
+                ? (data, stream) => middleware(data, stream) ? Cancelled : data
+                : (data, stream) => middleware === data ? Cancelled : data
         );
     }
 
@@ -417,7 +429,7 @@ export class Stream<T> implements StreamInterface<T> {
                 timerResource.open(() => this._emitLoop(subscribers, middlewareIndex, cb, cachedData), seconds);
             }
 
-            return CANCELLED;
+            return Cancelled;
         });
     }
 
@@ -441,13 +453,13 @@ export class Stream<T> implements StreamInterface<T> {
 
     public toErrorPromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(void 0, resolve, () => reject(COMPLETED)).once();
+            this.subscribe(void 0, resolve, () => reject(Completed)).once();
         });
     }
 
     public toPromise(): Promise<T> {
         return new Promise<T>((resolve, reject) => {
-            this.subscribe(resolve, (e) => reject(e), () => reject(COMPLETED)).once();
+            this.subscribe(resolve, (e) => reject(e), () => reject(Completed)).once();
         });
     }
 
@@ -464,24 +476,24 @@ export class Stream<T> implements StreamInterface<T> {
 
         while (true) {
             if (this._middlewares) {
-                for (const l = this._middlewares.length; middlewareIndex < l; middlewareIndex ++) {
+                for (const l = this._middlewares.length; middlewareIndex < l; middlewareIndex += 1) {
                     data = this._middlewares[middlewareIndex](data as T, this, subscribers, middlewareIndex + 1, cb);
 
-                    if (data === CANCELLED) {
+                    if (data === Cancelled) {
                         break;
                     }
                 }
             }
 
-            if (data !== CANCELLED) {
+            if (data !== Cancelled) {
                 this._lastValue = data;
 
-                this._transmittedCount ++;
+                this._transmittedCount += 1;
 
                 this._subscriberOnData(data, subscribers);
             }
 
-            if (! this._prebuffer || this._prebuffer.isEmpty) {
+            if (! this._inpBuffer || this._inpBuffer.isEmpty) {
                 this._isProcessing = false;
 
                 return cb ? cb(data) : data;
@@ -489,11 +501,11 @@ export class Stream<T> implements StreamInterface<T> {
 
             middlewareIndex = 0;
 
-            [data, subscribers] = this._prebuffer.shift();
+            [data, subscribers] = this._inpBuffer.shift();
         }
     }
 
-    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean): this {
+    protected _middlewareAdd(middleware: StreamMiddleware<T>, progressive?: boolean, tag?: string): this {
         if (this._middlewares === void 0) {
             this._middlewares = [middleware];
 

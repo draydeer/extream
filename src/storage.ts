@@ -85,7 +85,7 @@ export class Storage<T> {
 
             this.storage[i] = null;
 
-            this.deletedCount ++;
+            this.deletedCount += 1;
 
             if (this.tagged && tag !== void 0 && tag < this.tagged.length) {
                 this.tagged[tag].delete(value);

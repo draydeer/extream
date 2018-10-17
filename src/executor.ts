@@ -1,5 +1,5 @@
 import {Delegate} from "./delegate";
-import {CANCELLED, COMPLETED} from "./const";
+import {Cancelled, Completed} from "./const";
 import {Stream} from "./stream";
 import {StreamInterface} from "./interfaces/stream_interface";
 import {SubscriberInterface} from "./interfaces/subscriber_interface";
@@ -44,7 +44,7 @@ export class Executor<T> extends Stream<T> implements Promise<T> {
     }
 
     public complete(): this {
-        this._incomingStream.error(COMPLETED);
+        this._incomingStream.error(Completed);
 
         return super.complete();
     }

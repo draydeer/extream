@@ -1,6 +1,6 @@
 import * as express from 'express';
 import * as qs from 'querystring';
-import {CANCELLED} from '../const';
+import {Cancelled} from '../const';
 import {Msg, makeBy} from '../msg';
 import {Stream} from "../stream";
 import {SubscriberInterface} from '../interfaces/subscriber_interface';
@@ -93,6 +93,16 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
 
     // middlewares
 
+    public body(middleware: (data: any, stream?: StreamInterface<any>) => PromiseOrT<any>): this {
+        this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
+            session.body = middleware(session);
+
+            return session;
+        });
+
+        return this;
+    }
+
     public contentType(contentType: string): this {
         this._middlewareAdd((session: ExpressSessionStream<string & T>) => {
             try {
@@ -102,7 +112,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -118,7 +128,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
                 .on('end', () => this._emitLoop(subscribers, middlewareIndex, cb, data))
                 .on('error', (err) => this.error(err));
 
-            return CANCELLED;
+            return Cancelled;
         });
 
         return this;
@@ -133,7 +143,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -149,7 +159,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -165,7 +175,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -181,7 +191,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -197,7 +207,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
@@ -213,7 +223,7 @@ export class ExpressHandlerStream<T> extends Stream<ExpressSessionStream<string 
             } catch (err) {
                 this.error(err);
 
-                return CANCELLED;
+                return Cancelled;
             }
         });
 
