@@ -1,0 +1,20 @@
+@import ../vars
+
+.mini
+  .flex
+    &.center
+      justify-content: center
+
+    &.middle
+      align-items: center
+
+    display: flex
+    height: 100%
+
+  @for $i from 1 through $grid-cells
+    @if $i < 10
+      .flex-#{$i}
+        flex: $i
+    @else
+      .flex#{$i}
+        flex: $i
