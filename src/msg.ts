@@ -9,7 +9,7 @@ export function make<T=any>(data?: T, type?: any, region?: any): Msg<T> {
 }
 
 export function makeBy<T=any>(msg: Msg, data?: T, type?: any, region?: any): Msg<T> {
-    const copy = Object.assign({}, msg);
+    const copy = {...msg};
 
     if (data) {
         copy.data = data;

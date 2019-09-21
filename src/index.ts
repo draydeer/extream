@@ -116,27 +116,27 @@ function stop(title, ops) {
 
         exp.start(12345);
 
-          // const select = {
-          //     ok: new FetchResponseStream<any>()
-          //         .extractText().debug((data) => {
-          //             const t = 5;
-          //         }).map((data) => data.substr(0, 10)).debug((data) => {
-          //             const t = 5;
-          //         }),
-          //     error: new Stream<any>()
-          //         .map((data) => 'not ok')
-          // };
-          //
-          // select.ok.subscribe((data) => console.log('DATA!!!!'), () => console.log('ERRPR!!!'));
-          //
-          //  const fs = FetchStream.get<any>('https://google.com', 'test')
-          //     .select((response) => response.ok ? 'ok' : 'error', select);
-          //
-          //  fs.subscribe((data) => {
-          //     console.log(data);
-          //  }, (err) => {
-          //     console.error('error', err);
-          //  });
+          const select = {
+              ok: new FetchResponseStream<any>()
+                  .extractJson().debug((data) => {
+                      const t = 5;
+                  }).map((data) => data.substr(0, 10)).debug((data) => {
+                      const t = 5;
+                  }),
+              error: new Stream<any>()
+                  .map((data) => 'not ok')
+          };
+
+          select.ok.subscribe((data) => console.log('DATA!!!!'), () => console.log('ERRPR!!!'));
+
+           const fs = FetchStream.get<any>('https://google.com', 'test')
+              .select((response) => response.ok ? 'ok' : 'error', select);
+
+           fs.subscribe((data) => {
+              console.log(data);
+           }, (err) => {
+              console.error('error', err);
+           });
 
         // const fs = FetchStream.get<any>('https://google.com', 'test')
         //     .redirect((response) => response.ok ? 'ok' : 'error', select);
