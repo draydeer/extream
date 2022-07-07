@@ -19,7 +19,7 @@
     "html-webpack-plugin": "2.24.1",
     "immutable": "3.8.1",
     "invary": "^1.0.2",
-    "moment": "^2.18.1",
+    "moment": "^2.29.4",
     "momentjs": "2.0.0",
     "radium": "0.18.1",
     "react": "15.4.1",
